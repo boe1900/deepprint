@@ -118,6 +118,8 @@ DEEPPRINT_INITIAL_ADMIN_PASSWORD=change-me-min-8
 
 当前策略只发布预发布标签，不发布 `latest`。所以如果你不想自己本地构建，推荐直接使用 `edge`，或者固定到某个 `sha-...` 标签。
 
+当前 GHCR 预发布镜像同时支持 `linux/amd64` 和 `linux/arm64`，可以直接在 ARM NAS 上拉取演练。
+
 当前镜像验证范围以 Docker Compose、CUPS-PDF、Typst 渲染链路和 Web 控制台为主；真实物理打印机链路还需要进一步实机验证。首次对外推荐优先使用 `edge` 或固定的 `sha-...` 标签。
 
 ## 用 CUPS-PDF 验证打印链路
