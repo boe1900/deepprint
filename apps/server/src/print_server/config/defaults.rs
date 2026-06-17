@@ -3,7 +3,7 @@ use crate::print_server::platform_paths::{default_diagnostics_dir, default_log_d
 
 pub(super) const DEFAULT_AUTH_SESSION_COOKIE_NAME: &str = "deepprint_session";
 pub(super) const DEFAULT_AUTH_SESSION_TTL_SEC: u64 = 7 * 24 * 60 * 60;
-pub(super) const DEFAULT_EXTERNAL_CUPS_BASE_URL: &str = "http://127.0.0.1:631";
+pub(super) const DEFAULT_EXTERNAL_CUPS_BASE_URL: &str = "http://127.0.0.1:631/";
 pub(super) const DEFAULT_DIRECT_JOB_MAX_BYTES: u64 = 25 * 1024 * 1024;
 
 pub(super) fn default_agent_config() -> AgentConfig {

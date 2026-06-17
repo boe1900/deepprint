@@ -65,7 +65,7 @@ bun run web:dev
 如果希望本机 server 连接 Docker CUPS 并共用开发数据库：
 
 ```bash
-DEEPPRINT_CUPS_BASE_URL=http://localhost:631 \
+DEEPPRINT_CUPS_BASE_URL=http://localhost:631/ \
 bun run server:dev:raw
 ```
 
@@ -266,7 +266,7 @@ Compose 内部固定传入的变量：
 | --- | --- | --- |
 | `DEEPPRINT_AGENT_BIND` | `0.0.0.0` | 让 server 在容器内监听所有网卡，配合端口映射使用 |
 | `DEEPPRINT_AGENT_PORT` | `17801` | server 容器内监听端口 |
-| `DEEPPRINT_CUPS_BASE_URL` | `http://cups:631` | server 容器访问 compose 内 CUPS 服务的地址。Web 后台保存的 CUPS 地址会优先生效 |
+| `DEEPPRINT_CUPS_BASE_URL` | `http://cups:631/` | server 容器访问 compose 内 CUPS 服务的地址。Web 后台保存的 CUPS 地址会优先生效 |
 | `DEEPPRINT_TYPST_LOCAL_PACKAGES_ROOT` | `/data/typst/packages` | DeepPrint 管理的 Typst 包目录，挂在持久化 `/data` 卷下 |
 | `DEEPPRINT_TYPST_PREVIEW_CACHE_ROOT` | `/data/cache/typst` | Typst 包与预览缓存目录，可清理，可按需持久化 |
 | `DEEPPRINT_TYPST_FONTS_ROOT` | `/data/typst/fonts` | DeepPrint 唯一受管字体目录，挂在持久化 `/data` 卷下 |

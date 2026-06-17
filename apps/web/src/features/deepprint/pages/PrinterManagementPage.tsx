@@ -761,15 +761,15 @@ export function PrinterManagementPage({
               <Label htmlFor="settings-cups-base-url">CUPS Base URL</Label>
               <Input
                 id="settings-cups-base-url"
-                placeholder="http://127.0.0.1:631"
+                placeholder="http://127.0.0.1:631/"
                 value={cupsBaseUrlDraft}
                 onChange={(event) => setCupsBaseUrlDraft(event.target.value)}
               />
               <p className="text-xs leading-5 text-muted-foreground">
                 这里填写的是 DeepPrint 服务端可访问的地址。宿主机部署通常可以用
-                <code className="mx-1 rounded bg-muted px-1 py-0.5">http://127.0.0.1:631</code>
+                <code className="mx-1 rounded bg-muted px-1 py-0.5">http://127.0.0.1:631/</code>
                 ，Docker Compose 常见为
-                <code className="mx-1 rounded bg-muted px-1 py-0.5">http://cups:631</code>
+                <code className="mx-1 rounded bg-muted px-1 py-0.5">http://cups:631/</code>
                 。
               </p>
             </div>

@@ -168,7 +168,7 @@ fn build_test_agent_state_with_backend_and_config(
         started_at: Instant::now(),
         version: "test".to_string(),
         config,
-        cups_base_url: Arc::new(RwLock::new("http://127.0.0.1:631".to_string())),
+        cups_base_url: Arc::new(RwLock::new("http://127.0.0.1:631/".to_string())),
         backend,
         typst_local_packages_root: Arc::new(local_root),
         typst_preview_cache_root: Arc::new(preview_root),

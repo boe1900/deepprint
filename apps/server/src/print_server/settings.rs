@@ -100,5 +100,26 @@ fn normalize_cups_base_url(raw: &str) -> ApiResult<String> {
         ));
     }
 
-    Ok(trimmed.trim_end_matches('/').to_string())
+    Ok(parsed.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_cups_base_url;
+
+    #[test]
+    fn normalize_cups_base_url_keeps_cups_root_slash() {
+        assert_eq!(
+            normalize_cups_base_url("http://cups:631/").unwrap(),
+            "http://cups:631/"
+        );
+        assert_eq!(
+            normalize_cups_base_url("http://127.0.0.1:631").unwrap(),
+            "http://127.0.0.1:631/"
+        );
+        assert_eq!(
+            normalize_cups_base_url("http://cups:8631/admin").unwrap(),
+            "http://cups:8631/admin"
+        );
+    }
 }
