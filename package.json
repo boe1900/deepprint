@@ -1,0 +1,42 @@
+{
+  "name": "deepprint-studio",
+  "description": "Private-deploy web print center built on CUPS and Typst.",
+  "private": true,
+  "version": "0.0.1",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/boe1900/deepprint",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/boe1900/deepprint.git"
+  },
+  "bugs": {
+    "url": "https://github.com/boe1900/deepprint/issues"
+  },
+  "workspaces": [
+    "apps/web"
+  ],
+  "scripts": {
+    "dev:local": "bash ./scripts/dev-local.sh",
+    "dev:local:cups": "docker compose up -d cups",
+    "dev:local:prepare": "docker compose stop server web || true && docker compose up -d cups",
+    "dev:local:server": "bun run server:dev",
+    "dev:local:web": "bun run web:dev",
+    "web:dev": "bash ./scripts/dev-local-web.sh",
+    "web:dev:raw": "cd apps/web && bun run dev",
+    "web:build": "cd apps/web && bun run build",
+    "web:test": "cd apps/web && bun run test",
+    "server:dev": "bash ./scripts/dev-local-server.sh",
+    "server:dev:raw": "cargo run --manifest-path apps/server/Cargo.toml",
+    "server:check": "cargo check --manifest-path apps/server/Cargo.toml",
+    "server:test": "cargo test --manifest-path apps/server/Cargo.toml",
+    "loadtest": "node ./scripts/loadtest.mjs",
+    "soaktest": "node ./scripts/soaktest.mjs",
+    "recovery:test": "node ./scripts/recovery-killtest.mjs",
+    "compose:config": "docker compose config",
+    "compose:reset": "docker compose down -v",
+    "compose:up": "docker compose up -d --build",
+    "compose:up:usb": "docker compose -f docker-compose.yml -f docker-compose.usb.yml up -d --build",
+    "compose:setup-cups-pdf": "bash ./scripts/setup-cups-pdf.sh",
+    "compose:smoke": "node ./scripts/compose-smoke.mjs"
+  }
+}

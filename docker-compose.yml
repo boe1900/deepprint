@@ -1,0 +1,56 @@
+services:
+  cups:
+    image: hanxi/cups:latest
+    user: root
+    environment:
+      CUPSADMIN: ${CUPSADMIN:-print}
+      CUPSPASSWORD: ${CUPSPASSWORD:-print}
+      TZ: ${TZ:-Asia/Shanghai}
+    ports:
+      - "${DEEPPRINT_CUPS_PORT:-631}:631"
+    volumes:
+      - cups-etc:/etc/cups
+      - ./.deepprint-dev/cups-pdf:/var/spool/cups-pdf
+    restart: unless-stopped
+
+  server:
+    build:
+      context: .
+      dockerfile: docker/server.Dockerfile
+    environment:
+      DEEPPRINT_AGENT_BIND: 0.0.0.0
+      DEEPPRINT_AGENT_PORT: 17801
+      DEEPPRINT_DATABASE_URL: ${DEEPPRINT_DATABASE_URL:-sqlite:///data/deepprint.db}
+      DEEPPRINT_CUPS_BASE_URL: http://cups:631
+      DEEPPRINT_RENDER_ENGINE: ${DEEPPRINT_RENDER_ENGINE:-typst}
+      DEEPPRINT_TYPST_LOCAL_PACKAGES_ROOT: ${DEEPPRINT_TYPST_LOCAL_PACKAGES_ROOT:-/data/typst/packages}
+      DEEPPRINT_TYPST_PREVIEW_CACHE_ROOT: ${DEEPPRINT_TYPST_PREVIEW_CACHE_ROOT:-/data/cache/typst}
+      DEEPPRINT_TYPST_FONTS_ROOT: ${DEEPPRINT_TYPST_FONTS_ROOT:-/data/typst/fonts}
+      DEEPPRINT_AUTH_SESSION_COOKIE_NAME: ${DEEPPRINT_AUTH_SESSION_COOKIE_NAME:-deepprint_session}
+      DEEPPRINT_AUTH_SESSION_TTL_SEC: ${DEEPPRINT_AUTH_SESSION_TTL_SEC:-604800}
+      DEEPPRINT_AUTH_COOKIE_SECURE: ${DEEPPRINT_AUTH_COOKIE_SECURE:-false}
+      DEEPPRINT_INITIAL_ADMIN_USERNAME: ${DEEPPRINT_INITIAL_ADMIN_USERNAME:-admin}
+      DEEPPRINT_INITIAL_ADMIN_PASSWORD: ${DEEPPRINT_INITIAL_ADMIN_PASSWORD:-}
+      DEEPPRINT_INITIAL_ADMIN_EMAIL: ${DEEPPRINT_INITIAL_ADMIN_EMAIL:-}
+      DEEPPRINT_INITIAL_ADMIN_DISPLAY_NAME: ${DEEPPRINT_INITIAL_ADMIN_DISPLAY_NAME:-}
+    ports:
+      - "${DEEPPRINT_SERVER_PORT:-17801}:17801"
+    volumes:
+      - deepprint-data:/data
+    depends_on:
+      - cups
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+    ports:
+      - "${DEEPPRINT_WEB_PORT:-8080}:8080"
+    depends_on:
+      - server
+    restart: unless-stopped
+
+volumes:
+  cups-etc:
+  deepprint-data:

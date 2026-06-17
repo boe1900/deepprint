@@ -1,0 +1,5 @@
+services:
+  cups:
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+

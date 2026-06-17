@@ -1,0 +1,9 @@
+.git
+node_modules
+src-tauri/agent-core
+target
+apps/server/target
+apps/web/node_modules
+*.log
+.DS_Store
+data

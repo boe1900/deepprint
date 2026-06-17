@@ -1,0 +1,46 @@
+[package]
+name = "deepprint-server"
+version = "0.1.0"
+edition = "2021"
+description = "DeepPrint Studio server for CUPS-backed printing and Typst rendering."
+license = "Apache-2.0"
+repository = "https://github.com/boe1900/deepprint"
+homepage = "https://github.com/boe1900/deepprint"
+
+[dependencies]
+async-stream = "0.3"
+axum = { version = "0.8", features = ["multipart"] }
+argon2 = "0.5"
+base64 = "0.22"
+binstall-tar = "0.4"
+dirs = "6"
+flate2 = "1"
+futures-core = "0.3"
+image = { version = "0.25", default-features = false, features = ["bmp", "gif", "jpeg", "png", "webp"] }
+ipp = { version = "6", default-features = false, features = ["async-client-rustls"] }
+kamadak-exif = "0.6"
+lopdf = "0.35"
+minisign-verify = "0.2"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+rand_core = { version = "0.6", features = ["getrandom"] }
+rusqlite = { version = "0.33", features = ["bundled"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+thiserror = "2"
+time = { version = "0.3", features = ["formatting", "parsing"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "time", "process"] }
+tokio-util = "0.7"
+toml = "0.8"
+tower-http = { version = "0.6", features = ["cors"] }
+tracing = "0.1"
+tracing-appender = "0.2"
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter", "json"] }
+typst-as-lib = { version = "0.15.4", features = ["typst-kit-fonts", "typst-kit-embed-fonts", "packages", "reqwest"] }
+typst-pdf = "0.14.2"
+url = "2"
+uuid = { version = "1", features = ["v4"] }
+zip = { version = "2.4", default-features = false, features = ["deflate"] }
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }
