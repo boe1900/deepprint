@@ -87,6 +87,27 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
+如果不想在本地构建镜像，也可以直接使用仓库发布到 GHCR 的预构建镜像：
+
+```bash
+cp .env.example .env
+docker compose -f docker-compose.ghcr.yml pull
+docker compose -f docker-compose.ghcr.yml up -d
+```
+
+`docker-compose.ghcr.yml` 默认使用：
+
+- `ghcr.io/boe1900/deepprint-server:edge`
+- `ghcr.io/boe1900/deepprint-web:edge`
+
+如果需要固定到某次构建产物，可以覆盖：
+
+```bash
+DEEPPRINT_SERVER_IMAGE=ghcr.io/boe1900/deepprint-server:sha-<commit> \
+DEEPPRINT_WEB_IMAGE=ghcr.io/boe1900/deepprint-web:sha-<commit> \
+docker compose -f docker-compose.ghcr.yml up -d
+```
+
 入口：
 
 - Web：`http://localhost:8080`
@@ -309,4 +330,4 @@ docker compose up -d
 - 每次发布同时附带不可变的 `sha-<commit>` 标签
 - 当前不会发布 `latest`
 
-这样可以先让外部用户验证容器部署链路，同时明确区分“可试用的预发布镜像”和“经过真实打印机场景验证后的正式版镜像”。
+这样可以先让外部用户验证容器部署链路，同时明确区分“可试用的预发布镜像”和“经过真实打印机场景验证后的正式版镜像”。如果只是想部署试用而不想本地构建，优先使用 `docker-compose.ghcr.yml`。
