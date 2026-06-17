@@ -302,4 +302,11 @@ docker compose up -d
 5. 可创建一个打印任务
 6. 诊断导出正常
 
-当前仓库还没有新的容器发布 CI/CD，镜像发布和部署编排需要后续补齐。
+当前仓库已经补了 GHCR 预发布镜像工作流：
+
+- `main` 分支会构建并发布 `ghcr.io/<owner>/deepprint-server:edge`
+- `main` 分支会构建并发布 `ghcr.io/<owner>/deepprint-web:edge`
+- 每次发布同时附带不可变的 `sha-<commit>` 标签
+- 当前不会发布 `latest`
+
+这样可以先让外部用户验证容器部署链路，同时明确区分“可试用的预发布镜像”和“经过真实打印机场景验证后的正式版镜像”。

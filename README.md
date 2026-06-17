@@ -86,6 +86,19 @@ DEEPPRINT_INITIAL_ADMIN_PASSWORD=change-me-min-8
 
 仓库自带的 `docker-compose.yml` 现在使用 Docker 命名卷 `deepprint-data` 持久化 `/data`，不再把容器数据库直接绑到宿主机目录。这样更接近真实部署，也能避免 macOS / Docker Desktop 下 SQLite 在 bind mount 上的稳定性问题。
 
+## 预发布镜像
+
+仓库现在可以通过 GitHub Actions 自动构建并发布 GHCR 预发布镜像：
+
+- `ghcr.io/<owner>/deepprint-server:edge`
+- `ghcr.io/<owner>/deepprint-web:edge`
+- `ghcr.io/<owner>/deepprint-server:sha-<commit>`
+- `ghcr.io/<owner>/deepprint-web:sha-<commit>`
+
+当前策略只发布预发布标签，不发布 `latest`。这样外部用户可以先试用容器镜像，但不会误以为它已经过完整生产验证。
+
+当前镜像验证范围以 Docker Compose、CUPS-PDF、Typst 渲染链路和 Web 控制台为主；真实物理打印机链路还需要进一步实机验证。首次对外推荐优先使用 `edge` 或固定的 `sha-...` 标签。
+
 ## 用 CUPS-PDF 验证打印链路
 
 `hanxi/cups` 镜像预装 `printer-driver-cups-pdf`，可以用虚拟打印机验证完整链路。
