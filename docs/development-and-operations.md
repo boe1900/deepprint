@@ -141,13 +141,15 @@ DEEPPRINT_INITIAL_ADMIN_PASSWORD='change-me-before-first-login'
 
 ## 4. CUPS-PDF 调试
 
-`hanxi/cups` 预装 `printer-driver-cups-pdf`，可以用虚拟 PDF 打印机验证真实 IPP 提交流程。
+`hanxi/cups` 预装 `printer-driver-cups-pdf`，可以用虚拟 PDF 打印机验证真实 IPP 提交流程；该链路已在 `linux/amd64` 和 ARM NAS 上跑通。
 
 初始化共享的 `CUPS-PDF` 打印机：
 
 ```bash
 bun run compose:setup-cups-pdf
 ```
+
+脚本会创建打印机、固定 `/etc/cups/cups-pdf.conf` 输出路径，并把 `ANONYMOUS` / `SPOOL` 目录调整为容器内可写，避免 NAS / bind mount 场景出现“打印任务成功但没有 PDF 文件”的假成功。
 
 脚本默认假设 CUPS 容器名是 `deepprint-cups-1`，需要时可以覆盖：
 

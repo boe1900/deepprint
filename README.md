@@ -125,7 +125,7 @@ DEEPPRINT_INITIAL_ADMIN_PASSWORD=change-me-min-8
 
 当前策略只发布预发布标签，不发布 `latest`。所以如果你不想自己本地构建，推荐直接使用 `edge`，或者固定到某个 `sha-...` 标签。
 
-当前 GHCR 预发布镜像同时支持 `linux/amd64` 和 `linux/arm64`，可以直接在 ARM NAS 上拉取演练。
+当前 GHCR 预发布镜像同时支持 `linux/amd64` 和 `linux/arm64`，并已在 ARM NAS 上配合 `hanxi/cups:latest` 跑通 CUPS-PDF 演练。
 
 当前镜像验证范围以 Docker Compose、CUPS-PDF、Typst 渲染链路和 Web 控制台为主；真实物理打印机链路还需要进一步实机验证。首次对外推荐优先使用 `edge` 或固定的 `sha-...` 标签。
 
@@ -138,6 +138,8 @@ DEEPPRINT_INITIAL_ADMIN_PASSWORD=change-me-min-8
 ```bash
 bun run compose:setup-cups-pdf
 ```
+
+这个脚本会同时创建打印机、固定 CUPS-PDF 输出路径，并把 PDF 输出目录调整为容器内可写，避免 NAS / bind mount 场景出现“打印任务成功但没有 PDF 文件”的假成功。
 
 然后在 Web 控制台中从当前 CUPS 导入 `CUPS-PDF` 打印机，提交一次打印。
 
