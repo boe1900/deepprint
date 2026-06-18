@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowRightIcon,
@@ -58,6 +58,7 @@ export function PrintPage({
   const { actions, agent, jobs, ui, writes } = controller;
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const fileInputId = useId();
   const printFilesRef = useRef<UploadedPrintFile[]>([]);
   const [printFiles, setPrintFiles] = useState<UploadedPrintFile[]>([]);
   const [activeFileId, setActiveFileId] = useState<string | null>(null);
@@ -322,7 +323,6 @@ export function PrintPage({
 
     if (!nextFiles.length) {
       ui.setNotice({ kind: "error", message: "当前仅支持选择 PDF 或图片文件" });
-      event.target.value = "";
       return;
     }
 
@@ -339,6 +339,12 @@ export function PrintPage({
   const handleFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
     addSelectedFiles(Array.from(event.target.files ?? []));
     event.target.value = "";
+  };
+
+  const triggerFileInputFromKeyboard = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    fileInputRef.current?.click();
   };
 
   const removePrintFile = (fileId: string) => {
@@ -390,11 +396,12 @@ export function PrintPage({
   return (
     <main className="flex min-h-0 flex-1 flex-col bg-[radial-gradient(circle_at_top_left,color-mix(in_srgb,var(--muted)_80%,transparent)_0,transparent_34rem),var(--background)]">
       <input
+        id={fileInputId}
         ref={fileInputRef}
         type="file"
         multiple
         accept="application/pdf,image/*,.pdf,.png,.jpg,.jpeg,.gif,.webp,.bmp"
-        className="hidden"
+        className="absolute h-px w-px overflow-hidden whitespace-nowrap border-0 p-0 opacity-0"
         onChange={handleFileSelected}
       />
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
@@ -412,8 +419,9 @@ export function PrintPage({
               />
               <FileStrip
                 activeFileId={activeFile.id}
+                fileInputId={fileInputId}
                 files={printFiles}
-                onAdd={() => fileInputRef.current?.click()}
+                onAddKeyDown={triggerFileInputFromKeyboard}
                 onClearAll={clearPrintFiles}
                 onRemove={removePrintFile}
                 onSelect={selectActiveFile}
@@ -421,8 +429,9 @@ export function PrintPage({
             </>
           ) : (
             <UploadDropzone
+              fileInputId={fileInputId}
               onDropFiles={addSelectedFiles}
-              onSelect={() => fileInputRef.current?.click()}
+              onSelectKeyDown={triggerFileInputFromKeyboard}
             />
           )}
         </section>
@@ -595,17 +604,21 @@ export function PrintPage({
   );
 }
 
-function UploadDropzone({
+export function UploadDropzone({
+  fileInputId,
   onDropFiles,
-  onSelect,
+  onSelectKeyDown,
 }: {
+  fileInputId: string;
   onDropFiles: (files: File[]) => void;
-  onSelect: () => void;
+  onSelectKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onSelect}
+    <label
+      htmlFor={fileInputId}
+      role="button"
+      tabIndex={0}
+      onKeyDown={onSelectKeyDown}
       onDragOver={(event) => {
         event.preventDefault();
       }}
@@ -613,7 +626,7 @@ function UploadDropzone({
         event.preventDefault();
         onDropFiles(Array.from(event.dataTransfer.files));
       }}
-      className="group flex min-h-[52dvh] flex-1 flex-col items-center justify-center rounded-3xl border border-dashed bg-card/70 p-6 text-center shadow-sm transition-colors hover:border-foreground/20 hover:bg-card lg:min-h-0"
+      className="group flex min-h-[52dvh] flex-1 cursor-pointer flex-col items-center justify-center rounded-3xl border border-dashed bg-card/70 p-6 text-center shadow-sm transition-colors hover:border-foreground/20 hover:bg-card focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 lg:min-h-0"
     >
       <div className="flex size-16 items-center justify-center rounded-3xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
         <UploadIcon className="size-7" />
@@ -625,21 +638,23 @@ function UploadDropzone({
       <div className="mt-5 rounded-full border bg-background px-4 py-2 text-sm text-foreground shadow-sm">
         选择本地文件
       </div>
-    </button>
+    </label>
   );
 }
 
-function FileStrip({
+export function FileStrip({
   activeFileId,
+  fileInputId,
   files,
-  onAdd,
+  onAddKeyDown,
   onClearAll,
   onRemove,
   onSelect,
 }: {
   activeFileId: string | null;
+  fileInputId: string;
   files: UploadedPrintFile[];
-  onAdd: () => void;
+  onAddKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
   onClearAll: () => void;
   onRemove: (fileId: string) => void;
   onSelect: (fileId: string) => void;
@@ -661,14 +676,16 @@ function FileStrip({
         ) : null}
       </div>
       <div className="flex gap-2 overflow-x-auto pb-1 lg:gap-3">
-        <button
-          type="button"
-          onClick={onAdd}
-          className="flex h-16 w-16 shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border border-dashed bg-card/60 text-muted-foreground transition-colors hover:bg-card hover:text-foreground sm:h-24 sm:w-24"
+        <label
+          htmlFor={fileInputId}
+          role="button"
+          tabIndex={0}
+          onKeyDown={onAddKeyDown}
+          className="flex h-16 w-16 shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border border-dashed bg-card/60 text-muted-foreground transition-colors hover:bg-card hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 sm:h-24 sm:w-24"
         >
           <PlusIcon className="size-5" />
           <span className="hidden text-[11px] font-medium sm:block">继续添加</span>
-        </button>
+        </label>
         {files.map((file) => {
           const active = file.id === activeFileId;
           return (
