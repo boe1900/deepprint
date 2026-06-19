@@ -287,6 +287,8 @@ DeepPrint Studio 的 CUPS 开发环境使用 [hanxi/cups](https://github.com/han
 
 模板渲染能力基于 [Typst](https://typst.app/) 生态。Typst 是现代化的开源排版系统，适合用简洁的标记语言生成高质量 PDF。
 
+本项目认可并感谢 [LINUX DO](https://linux.do/) 社区，也欢迎在社区中交流反馈。
+
 更多第三方项目和许可证说明见 [第三方致谢与许可证说明](./THIRD_PARTY_NOTICES.md)。
 
 ## License
