@@ -922,7 +922,6 @@ function ServiceMetricCard({
   tone?: "default" | "success" | "warning" | "danger" | "neutral";
   value: ReactNode;
 }) {
-  const { t } = useI18n();
   return (
     <div
       className={cn(
@@ -1079,6 +1078,7 @@ function PrinterIdentity({
   printer: PrinterInfo;
   selected: boolean;
 }) {
+  const { t } = useI18n();
   return (
     <div className="flex min-w-0 items-start gap-3">
       <button
