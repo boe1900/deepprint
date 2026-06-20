@@ -1,35 +1,35 @@
 # Contributing
 
-感谢你关注 DeepPrint Studio。
+Thanks for your interest in DeepPrint Studio.
 
-这个项目目前优先接受以下类型的贡献：
+This project currently welcomes:
 
-- Bug 修复
-- 文档改进
-- 测试补充
-- 小范围、可验证的功能增强
+- Bug fixes
+- Documentation improvements
+- Test coverage
+- Small, verifiable feature improvements
 
-## 开始之前
+## Before You Start
 
-请先阅读这些文档：
+Please read:
 
 - [README.md](./README.md)
 - [docs/development-and-operations.md](./docs/development-and-operations.md)
 - [docs/system-design.md](./docs/system-design.md)
 
-开发环境要求：
+Development requirements:
 
 - Bun 1.x
 - Rust stable
-- Docker 与 Docker Compose
+- Docker and Docker Compose
 
-安装依赖：
+Install dependencies:
 
 ```bash
 bun install
 ```
 
-推荐本地开发方式：
+Recommended local development flow:
 
 ```bash
 bun run dev:local
@@ -37,9 +37,9 @@ bun run server:dev
 bun run web:dev
 ```
 
-## 提交前检查
+## Checks Before Submitting
 
-提交 PR 前请至少运行：
+Before opening a PR, run at least:
 
 ```bash
 bun run web:build
@@ -48,26 +48,26 @@ bun run server:check
 bun run server:test
 ```
 
-如果改动触及 Open API、API Key、打印链路或恢复逻辑，请再参考 [docs/development-and-operations.md](./docs/development-and-operations.md) 里的专项验证命令。
+If your change touches the Open API, API keys, print pipeline, or recovery logic, also follow the targeted validation commands in [docs/development-and-operations.md](./docs/development-and-operations.md).
 
-## 贡献约定
+## Contribution Guidelines
 
-- 优先提交小而清晰的 PR，避免一次混入不相关改动。
-- 行为变更请同步更新文档、截图或测试。
-- 不要提交 `.env`、数据库、日志、缓存、构建产物或本地运行目录内容。
-- 不要把真实密码、API Key、内部地址或其他敏感信息写进仓库。
-- 如果改动涉及 UI，请尽量附上截图或录屏，说明桌面端和移动端表现。
+- Prefer small, clear PRs. Do not mix unrelated changes.
+- Update docs, screenshots, or tests when behavior changes.
+- Do not commit `.env`, databases, logs, caches, build artifacts, or local runtime directories.
+- Do not commit real passwords, API keys, internal addresses, or other sensitive data.
+- For UI changes, include screenshots or recordings when possible, and mention desktop and mobile behavior.
 
-## Issue 与 PR 建议
+## Issues and PRs
 
-提交 Issue 或 PR 时，尽量带上这些信息：
+When opening an issue or PR, include as much of this as possible:
 
-- 改动目的或问题背景
-- 复现步骤
-- 预期行为与实际行为
-- 运行环境：本地开发 / Docker Compose / Linux USB 打印
-- 涉及的模块：Web、Server、CUPS、Typst 模板、字体、包管理等
+- Goal or background
+- Reproduction steps
+- Expected behavior and actual behavior
+- Environment: local development / Docker Compose / Linux USB printing
+- Affected area: Web, Server, CUPS, Typst templates, fonts, package management, etc.
 
-## 安全问题
+## Security Issues
 
-如果你发现的是安全漏洞，请不要公开提交 Issue。请先阅读 [SECURITY.md](./SECURITY.md)。
+If you found a security vulnerability, please do not open a public issue. Read [SECURITY.md](./SECURITY.md) first.

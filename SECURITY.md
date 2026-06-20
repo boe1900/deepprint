@@ -1,33 +1,33 @@
 # Security Policy
 
-感谢你帮助 DeepPrint Studio 提升安全性。
+Thanks for helping keep DeepPrint Studio secure.
 
-## 支持范围
+## Supported Scope
 
-当前仓库优先维护最新主线代码。若未来发布稳定版本，可再按版本维护窗口补充支持策略。
+This repository currently focuses on the latest mainline code. If stable releases are published later, this policy can be expanded with version-specific support windows.
 
-## 报告方式
+## Reporting a Vulnerability
 
-如果你发现了安全漏洞，请不要公开提交 Issue、PR 或讨论帖。
+If you find a security vulnerability, please do not open a public issue, PR, or discussion.
 
-请优先使用 GitHub 的私密漏洞报告能力；如果仓库尚未开启该能力，请通过仓库维护者提供的私下联系方式先行联系，并尽量附上：
+Prefer GitHub private vulnerability reporting. If it is not enabled for this repository, contact the maintainers privately using the contact method they provide, and include as much of this as possible:
 
-- 漏洞类型与影响范围
-- 复现步骤
-- 触发条件
-- 可能的利用方式
-- 修复建议或缓解方案
+- Vulnerability type and impact
+- Reproduction steps
+- Trigger conditions
+- Possible exploitation path
+- Suggested fix or mitigation
 
-## 响应目标
+## Response Targets
 
-我们会尽量按下面的节奏处理：
+We aim to:
 
-- 3 个工作日内确认已收到报告
-- 在复现后给出影响评估与后续处理计划
-- 修复完成后再协调公开披露时间
+- Acknowledge reports within 3 business days
+- Provide an impact assessment and handling plan after reproduction
+- Coordinate public disclosure after a fix is available
 
-## 披露原则
+## Disclosure Principles
 
-- 在修复方案可用前，不建议公开细节
-- 如果问题已经在野被利用，请在私下报告中明确说明紧急程度
-- 修复发布后，欢迎补充公开致谢信息
+- Please avoid publishing details before a fix is available.
+- If the issue is already being exploited in the wild, clearly mark the urgency in the private report.
+- After the fix is released, public credit is welcome.
