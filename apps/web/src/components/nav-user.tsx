@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   ChevronsUpDownIcon,
   KeyRoundIcon,
+  LanguagesIcon,
   Loader2Icon,
   LogOutIcon,
   PackageIcon,
@@ -22,6 +23,8 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -37,15 +40,17 @@ import { getAuthBaseUrl } from "@/features/auth/session"
 import type { AuthUser } from "@/features/auth/types"
 import { userAvatarInitial, userAvatarTone } from "@/features/auth/user-avatar"
 import { useSettings } from "@/hooks/use-settings"
+import { localeLabels, locales, useI18n, type Locale } from "@/i18n"
 
 export function NavUser({ user }: { user: AuthUser }) {
+  const { locale, setLocale, t } = useI18n()
   const { isMobile } = useSidebar()
   const { open: openSettings } = useSettings()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const baseUrl = useMemo(() => getAuthBaseUrl(), [])
   const name = user.display_name || user.username
-  const subtitle = user.email || "本地管理员"
+  const subtitle = user.email || t("auth.localAdmin")
   const avatarClassName = userAvatarTone(name)
   const avatarInitial = userAvatarInitial(name)
 
@@ -114,7 +119,7 @@ export function NavUser({ user }: { user: AuthUser }) {
             <DropdownMenuGroup>
               <DropdownMenuItem disabled>
                 <ShieldCheckIcon />
-                <span>{user.role === "admin" ? "管理员" : user.role}</span>
+                <span>{user.role === "admin" ? t("auth.admin") : user.role}</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() =>
@@ -125,22 +130,37 @@ export function NavUser({ user }: { user: AuthUser }) {
                 }
               >
                 <KeyRoundIcon />
-                <span>修改密码</span>
+                <span>{t("auth.changePassword")}</span>
               </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>{t("language.label")}</DropdownMenuLabel>
+              <DropdownMenuRadioGroup
+                value={locale}
+                onValueChange={(value) => setLocale(value as Locale)}
+              >
+                {locales.map((item) => (
+                  <DropdownMenuRadioItem key={item} value={item}>
+                    <LanguagesIcon />
+                    <span>{localeLabels[item]}</span>
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem onClick={() => openSettings("packages")}>
                 <PackageIcon />
-                <span>Typst 包管理</span>
+                <span>{t("settings.packages.label")}</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => openSettings("fonts")}>
                 <TypeIcon />
-                <span>字体管理</span>
+                <span>{t("settings.fonts.label")}</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => openSettings()}>
                 <SettingsIcon />
-                <span>打开设置</span>
+                <span>{t("settings.open")}</span>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
@@ -155,7 +175,7 @@ export function NavUser({ user }: { user: AuthUser }) {
                 ) : (
                   <LogOutIcon />
                 )}
-                <span>退出登录</span>
+                <span>{t("auth.logout")}</span>
               </DropdownMenuItem>
             </DropdownMenuGroup>
           </DropdownMenuContent>

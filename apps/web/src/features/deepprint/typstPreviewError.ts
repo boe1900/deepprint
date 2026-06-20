@@ -1,3 +1,5 @@
+import { getCurrentLocale, translate } from "@/i18n";
+
 const RENDER_CODE_REGEX = /\[(RENDER_[A-Z_]+)\]/;
 const SOURCE_DIAGNOSTIC_MESSAGE_REGEX = /message:\s*"([^"]+)"/g;
 
@@ -38,44 +40,44 @@ function formatDiagnosticsLines(rawMessage: string): string[] {
 }
 
 function buildTemplateErrorMessage(rawMessage: string, templateContent: string): string {
-  const lines = ["模板格式有误，无法生成预览。"];
+  const lines = [tr("typstPreview.templateInvalid")];
   const diagnostics = formatDiagnosticsLines(rawMessage);
   if (diagnostics.length > 0) {
-    lines.push("错误详情：", ...diagnostics);
+    lines.push(tr("typstPreview.detail"), ...diagnostics);
   }
-  lines.push("建议：");
+  lines.push(tr("typstPreview.hint"));
   if (templateContent.includes("\\n")) {
-    lines.push("1. 检测到模板中包含字面量 \\n，请改为真实换行。");
-    lines.push("2. 检查 #set/#let 语句后是否换行，避免同一行拼接多个语句。");
-    lines.push("3. 可先点击“重置表单”恢复默认模板再逐步修改。");
+    lines.push(tr("typstPreview.hintLiteralNewline"));
+    lines.push(tr("typstPreview.hintSetLetAfterNewline"));
+    lines.push(tr("typstPreview.hintResetForm"));
   } else {
-    lines.push("1. 检查 #set/#let 语句后是否换行，避免同一行拼接多个语句。");
-    lines.push("2. 检查文本与表达式之间的分隔符是否完整。");
-    lines.push("3. 可先点击“重置表单”恢复默认模板再逐步修改。");
+    lines.push(tr("typstPreview.hintCheckSetLet"));
+    lines.push(tr("typstPreview.hintCheckSeparator"));
+    lines.push(tr("typstPreview.hintResetForm"));
   }
   return lines.join("\n");
 }
 
 function buildResourceMissingMessage(rawMessage: string): string {
-  const lines = ["模板依赖的资源缺失，无法生成预览。"];
+  const lines = [tr("typstPreview.resourceMissing")];
   const diagnostics = formatDiagnosticsLines(rawMessage);
   if (diagnostics.length > 0) {
-    lines.push("错误详情：", ...diagnostics);
+    lines.push(tr("typstPreview.detail"), ...diagnostics);
   }
-  lines.push("建议：");
-  lines.push("1. 检查 #import 的包名和版本是否正确。");
-  lines.push("2. 若是官方包，先在设置页“Typst 包管理”刷新/安装。");
-  lines.push("3. 若是字体缺失，先在设置页“Typst 字体管理”安装字体。");
+  lines.push(tr("typstPreview.hint"));
+  lines.push(tr("typstPreview.hintCheckImport"));
+  lines.push(tr("typstPreview.hintOfficialPackage"));
+  lines.push(tr("typstPreview.hintFontMissing"));
   return lines.join("\n");
 }
 
 function buildCompileFailedMessage(rawMessage: string): string {
-  const lines = ["Typst 编译失败，无法生成预览。"];
+  const lines = [tr("typstPreview.compileFailed")];
   const diagnostics = formatDiagnosticsLines(rawMessage);
   if (diagnostics.length > 0) {
-    lines.push("错误详情：", ...diagnostics);
+    lines.push(tr("typstPreview.detail"), ...diagnostics);
   }
-  lines.push("建议：请先检查模板语法和依赖资源是否完整。");
+  lines.push(tr("typstPreview.hintCheckResource"));
   return lines.join("\n");
 }
 
@@ -97,4 +99,8 @@ export function formatTypstPreviewError(rawMessage: string, templateContent: str
   }
 
   return message;
+}
+
+function tr(key: string) {
+  return translate(getCurrentLocale(), key);
 }

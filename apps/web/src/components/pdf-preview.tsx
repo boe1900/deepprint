@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n";
 
 type RenderedPdfPage = {
   error: string | null;
@@ -42,10 +43,11 @@ let pdfjsPromise: Promise<typeof import("pdfjs-dist")> | null = null;
 
 export function PdfPreview({
   className,
-  emptyMessage = "暂无 PDF 预览。",
+  emptyMessage,
   loading = false,
   source,
 }: PdfPreviewProps) {
+  const { t } = useI18n();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const pageElementsRef = useRef<Record<number, HTMLDivElement | null>>({});
   const loadingTaskRef = useRef<import("pdfjs-dist").PDFDocumentLoadingTask | null>(null);
@@ -250,7 +252,7 @@ export function PdfPreview({
       } catch (error) {
         revokeRenderedPages(nextPages);
         if (cancelled) return;
-        const message = error instanceof Error ? error.message : "PDF 预览渲染失败";
+        const message = error instanceof Error ? error.message : t("pdfPreview.renderFailed");
         setRenderError(message);
       } finally {
         if (!cancelled) {
@@ -295,7 +297,7 @@ export function PdfPreview({
     zoomScale,
   });
   const zoomPercent = Math.round(displayScale * 100);
-  const emptyBusyMessage = loading ? "正在生成预览..." : "正在渲染 PDF...";
+  const emptyBusyMessage = loading ? t("pdfPreview.loading") : t("pdfPreview.rendering");
 
   const scrollToPage = (pageNumber: number, behavior: ScrollBehavior = "smooth") => {
     const element = containerRef.current;
@@ -420,7 +422,7 @@ export function PdfPreview({
       nextUrl = null;
     } catch (error) {
       if (generation !== renderGenerationRef.current) return;
-      const message = error instanceof Error ? error.message : "页面渲染失败";
+      const message = error instanceof Error ? error.message : t("pdfPreview.pageRenderFailed");
       updateRenderedPage(pageNumber, (current) => ({
         ...current,
         error: message,
@@ -454,7 +456,7 @@ export function PdfPreview({
       const context = canvas.getContext("2d");
 
       if (!context) {
-        throw new Error("当前浏览器不支持 Canvas PDF 渲染");
+        throw new Error(t("pdfPreview.canvasUnsupported"));
       }
 
       canvas.width = Math.ceil(renderViewport.width);
@@ -501,7 +503,7 @@ export function PdfPreview({
         <div className="z-10 flex flex-wrap items-center justify-between gap-2 border-b bg-background/95 px-3 py-2 backdrop-blur">
           <div className="flex items-center gap-1">
             <Button
-              aria-label="上一页"
+              aria-label={t("pdfPreview.previousPage")}
               disabled={activePage <= 1}
               onClick={() => changePage(-1)}
               size="icon-sm"
@@ -512,7 +514,7 @@ export function PdfPreview({
             </Button>
             <div className="flex items-center gap-1 rounded-lg border bg-muted/30 px-1.5 py-1 text-xs text-muted-foreground">
               <input
-                aria-label="跳转页码"
+                aria-label={t("pdfPreview.selectPage")}
                 className="h-5 w-9 rounded-md border bg-background px-1 text-center font-semibold text-foreground tabular-nums outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
                 inputMode="numeric"
                 onBlur={commitPageInput}
@@ -526,10 +528,10 @@ export function PdfPreview({
                 }}
                 value={pageInput}
               />
-              <span className="whitespace-nowrap tabular-nums">/ {totalPages || 1} 页</span>
+              <span className="whitespace-nowrap tabular-nums">/ {totalPages || 1} {t("pdfPreview.pageLabel")}</span>
             </div>
             <Button
-              aria-label="下一页"
+              aria-label={t("pdfPreview.nextPage")}
               disabled={activePage >= totalPages}
               onClick={() => changePage(1)}
               size="icon-sm"
@@ -543,7 +545,7 @@ export function PdfPreview({
           <div className="flex flex-wrap items-center justify-end gap-1">
             <div className="flex items-center gap-1 rounded-lg border bg-muted/30 p-1">
               <Button
-                aria-label="缩小"
+                aria-label={t("pdfPreview.zoomOut")}
                 disabled={displayScale <= MIN_ZOOM_SCALE + 0.01}
                 onClick={() => setCustomZoom(displayScale - ZOOM_STEP)}
                 size="icon-xs"
@@ -556,7 +558,7 @@ export function PdfPreview({
                 {zoomPercent}%
               </span>
               <Button
-                aria-label="放大"
+                aria-label={t("pdfPreview.zoomIn")}
                 disabled={displayScale >= MAX_ZOOM_SCALE - 0.01}
                 onClick={() => setCustomZoom(displayScale + ZOOM_STEP)}
                 size="icon-xs"
@@ -575,8 +577,8 @@ export function PdfPreview({
               variant={zoomMode === "fit-width" ? "secondary" : "ghost"}
             >
               <Maximize2Icon />
-              <span className="hidden sm:inline">适应宽度</span>
-              <span className="sm:hidden">适应</span>
+              <span className="hidden sm:inline">{t("pdfPreview.fitWidth")}</span>
+              <span className="sm:hidden">{t("pdfPreview.fitShort")}</span>
             </Button>
             <Button
               aria-pressed={zoomMode === "fit-page"}
@@ -586,7 +588,7 @@ export function PdfPreview({
               type="button"
               variant={zoomMode === "fit-page" ? "secondary" : "ghost"}
             >
-              适应整页
+              {t("pdfPreview.fitPage")}
             </Button>
             <Button
               aria-pressed={zoomMode === "custom" && Math.abs(zoomScale - 1) < 0.01}
@@ -597,13 +599,13 @@ export function PdfPreview({
             >
               100%
             </Button>
-            <Button aria-label="顺时针旋转" onClick={rotateClockwise} size="icon-sm" type="button" variant="ghost">
+            <Button aria-label={t("pdfPreview.rotateClockwise")} onClick={rotateClockwise} size="icon-sm" type="button" variant="ghost">
               <RotateCwIcon />
             </Button>
-            <Button aria-label="打开 PDF" onClick={openPdf} size="icon-sm" type="button" variant="ghost">
+            <Button aria-label={t("pdfPreview.open")} onClick={openPdf} size="icon-sm" type="button" variant="ghost">
               <ExternalLinkIcon />
             </Button>
-            <Button aria-label="下载 PDF" onClick={downloadPdf} size="icon-sm" type="button" variant="ghost">
+            <Button aria-label={t("pdfPreview.download")} onClick={downloadPdf} size="icon-sm" type="button" variant="ghost">
               <DownloadIcon />
             </Button>
           </div>
@@ -628,7 +630,7 @@ export function PdfPreview({
               {page.url ? (
                 <img
                   src={page.url}
-                  alt={`PDF 第 ${page.pageNumber} 页`}
+                  alt={t("pdfPreview.pageAlt", { page: page.pageNumber })}
                   className="size-full"
                 />
               ) : (
@@ -646,7 +648,7 @@ export function PdfPreview({
           ) : renderError ? (
             renderError
           ) : (
-            emptyMessage
+            emptyMessage ?? t("pdfPreview.empty")
           )}
         </div>
       )}
@@ -717,7 +719,7 @@ function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (!blob) {
-        reject(new Error("PDF 页面渲染失败：无法导出图像"));
+        reject(new Error("PDF page render failed: could not export image"));
         return;
       }
       resolve(blob);

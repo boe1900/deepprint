@@ -3,11 +3,12 @@ import { FontsSection } from "@/features/settings/sections/FontsSection";
 import { TypstPackagesSection } from "@/features/settings/sections/TypstPackagesSection";
 import type { DeepprintController } from "@/features/deepprint/controller";
 import type { SettingsSectionId } from "@/hooks/use-settings";
+import type { MessageKey } from "@/i18n";
 
 export type SettingsSectionDefinition = {
   id: SettingsSectionId;
-  label: string;
-  description: string;
+  labelKey: MessageKey;
+  descriptionKey: MessageKey;
   icon: React.ComponentType<{ className?: string }>;
   component: React.ComponentType<{ controller: DeepprintController }>;
 };
@@ -15,26 +16,26 @@ export type SettingsSectionDefinition = {
 export const settingsSections: Record<SettingsSectionId, SettingsSectionDefinition> = {
   packages: {
     id: "packages",
-    label: "Typst 包管理",
-    description: "管理本地 Typst 扩展包和 preview 缓存。",
+    labelKey: "settings.packages.label",
+    descriptionKey: "settings.packages.description",
     icon: BoxIcon,
     component: TypstPackagesSection,
   },
   fonts: {
     id: "fonts",
-    label: "Typst 字体管理",
-    description: "统一管理 Typst 运行时可用字体。",
+    labelKey: "settings.fonts.label",
+    descriptionKey: "settings.fonts.description",
     icon: TypeIcon,
     component: FontsSection,
   },
 };
 
 export const settingGroups: Array<{
-  title: string;
+  titleKey: MessageKey;
   items: SettingsSectionDefinition[];
 }> = [
   {
-    title: "资源管理",
+    titleKey: "settings.resourceManagement",
     items: [settingsSections.packages, settingsSections.fonts],
   },
 ];

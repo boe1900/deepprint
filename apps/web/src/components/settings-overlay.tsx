@@ -9,12 +9,14 @@ import { Button } from "@/components/ui/button"
 import { settingGroups, settingsSections } from "@/features/settings/config"
 import type { DeepprintController } from "@/features/deepprint/controller"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/i18n"
 
 export function SettingsOverlay({
   controller,
 }: {
   controller: DeepprintController
 }) {
+  const { t } = useI18n()
   const { activeSection, isOpen, close, open } = useSettings()
 
   if (!isOpen) return null
@@ -34,23 +36,25 @@ export function SettingsOverlay({
             variant="ghost"
             size="icon-sm"
             onClick={close}
-            aria-label="返回"
+            aria-label={t("settings.back")}
           >
             <ArrowLeftIcon />
           </Button>
           <div className="min-w-0">
             <h2 className="font-heading truncate text-sm font-medium text-sidebar-foreground">
-              设置
+              {t("common.settings")}
             </h2>
-            <p className="truncate text-xs text-muted-foreground">资源管理</p>
+            <p className="truncate text-xs text-muted-foreground">
+              {t("settings.resourceManagement")}
+            </p>
           </div>
         </div>
 
         <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-3 py-3">
           {settingGroups.map((group) => (
-            <div key={group.title} className="flex flex-col gap-2">
+            <div key={group.titleKey} className="flex flex-col gap-2">
               <h4 className="px-2 text-[11px] font-medium tracking-wider text-muted-foreground/70 uppercase">
-                {group.title}
+                {t(group.titleKey)}
               </h4>
               <nav className="flex flex-col gap-1">
                 {group.items.map((menu) => (
@@ -73,7 +77,7 @@ export function SettingsOverlay({
                           : "text-muted-foreground"
                       )}
                     />
-                    <span className="truncate">{menu.label}</span>
+                    <span className="truncate">{t(menu.labelKey)}</span>
                   </button>
                 ))}
               </nav>
@@ -89,10 +93,10 @@ export function SettingsOverlay({
         >
           <div className="min-w-0">
             <h3 className="font-heading truncate text-base font-medium text-foreground">
-              {activeSetting.label}
+              {t(activeSetting.labelKey)}
             </h3>
             <p className="truncate text-xs text-muted-foreground">
-              {activeSetting.description}
+              {t(activeSetting.descriptionKey)}
             </p>
           </div>
           <Button
@@ -100,7 +104,7 @@ export function SettingsOverlay({
             variant="ghost"
             size="icon-sm"
             onClick={close}
-            aria-label="关闭设置"
+            aria-label={t("settings.close")}
           >
             <XIcon />
           </Button>

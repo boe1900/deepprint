@@ -21,38 +21,39 @@ import {
   SendIcon,
   UsersIcon,
 } from "lucide-react"
+import { useI18n } from "@/i18n"
 
 const data = {
   navMain: [
     {
       id: "printers" as const,
-      title: "打印机",
+      titleKey: "nav.printers" as const,
       icon: <PrinterIcon />,
     },
     {
       id: "print" as const,
-      title: "打印中心",
+      titleKey: "nav.print" as const,
       icon: <SendIcon />,
     },
     {
       id: "templates" as const,
-      title: "模板管理",
+      titleKey: "nav.templates" as const,
       icon: <FileTextIcon />,
     },
     {
       id: "history" as const,
-      title: "打印记录",
+      titleKey: "nav.history" as const,
       icon: <HistoryIcon />,
     },
     {
       id: "users" as const,
-      title: "用户管理",
+      titleKey: "nav.users" as const,
       icon: <UsersIcon />,
       adminOnly: true,
     },
     {
       id: "apiKeys" as const,
-      title: "API Key",
+      titleKey: "nav.apiKeys" as const,
       icon: <KeyRoundIcon />,
       adminOnly: true,
     },
@@ -69,9 +70,13 @@ export function AppSidebar({
   authUser: AuthUser | null
   onNavigate: (page: AppPage) => void
 }) {
+  const { t } = useI18n()
   const navItems = data.navMain.filter(
     (item) => !("adminOnly" in item) || authUser?.role === "admin"
-  )
+  ).map((item) => ({
+    ...item,
+    title: t(item.titleKey),
+  }))
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>

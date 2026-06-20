@@ -1,4 +1,5 @@
 import { useCallback, useEffect } from "react";
+import { getCurrentLocale, translate } from "@/i18n";
 import { getClientSetupState, saveClientSetupState } from "../api";
 import { DEFAULT_BASE_URL } from "../constants";
 import { normalizeBaseUrl } from "../utils";
@@ -100,7 +101,7 @@ export function useSetupActions({
         const secret = (useDefault ? "" : setupAuthSecret).trim();
 
         if (enableAuth && (!token || !secret)) {
-          throw new Error("启用操作鉴权时，token 和 secret 都必须填写");
+          throw new Error(tr("setup.authRequiredTokenSecret"));
         }
 
         const saved = await saveClientSetupState({
@@ -112,7 +113,7 @@ export function useSetupActions({
         });
 
         if (!saved) {
-          throw new Error("保存初始化配置失败（当前运行环境不支持本地命令）");
+          throw new Error(tr("setup.saveUnsupported"));
         }
 
         const keepTokenInUi = !saved.auth_token_saved && token.length > 0;
@@ -128,10 +129,10 @@ export function useSetupActions({
         setSetupAuthToken("");
         setSetupAuthSecret("");
         setShowOnboarding(false);
-        setNotice({ kind: "ok", message: "初始化完成，DeepPrint Studio 业务内核已就绪" });
+        setNotice({ kind: "ok", message: tr("setup.succeeded") });
         void refreshAll(true);
       } catch (error) {
-        const message = error instanceof Error ? error.message : "保存初始化配置失败";
+        const message = error instanceof Error ? error.message : tr("setup.saveFailed");
         setSetupError(message);
       } finally {
         setSetupSubmitting(false);
@@ -164,4 +165,8 @@ export function useSetupActions({
   return {
     onSubmitOnboarding,
   };
+}
+
+function tr(key: string, params?: Record<string, string | number | null | undefined>) {
+  return translate(getCurrentLocale(), key, params);
 }

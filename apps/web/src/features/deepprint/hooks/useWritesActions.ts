@@ -1,4 +1,5 @@
 import { useCallback, type Dispatch, type FormEvent, type SetStateAction } from "react";
+import { getCurrentLocale, translate } from "@/i18n";
 import {
   getRequestErrorMessage,
   isAbortError,
@@ -204,19 +205,19 @@ export function useWritesActions({
       }
 
       if (hasAnyAuthInput && (!token || !secret)) {
-        throw new Error("若要发送签名请求，请同时填写 token 与 secret");
+        throw new Error(tr("typstAssets.authTokenSecretRequired"));
       }
 
       try {
         return await signClientWriteHeaders(method, path, bodyText, token || null, secret || null);
       } catch (error) {
-        const message = error instanceof Error ? error.message : "签名失败";
+        const message = error instanceof Error ? error.message : tr("typstAssets.signFailed");
         if (authRequiredForWrites) {
           throw new Error(
-            `当前 Agent 已启用操作鉴权，签名失败：${message}。请确认初始化向导已保存凭据，或在当前页面输入 token 与 secret。`,
+            tr("typstAssets.authRequiredSignFailed", { message }),
           );
         }
-        throw new Error(`签名失败：${message}`);
+        throw new Error(tr("typstAssets.signFailedWithMessage", { message }));
       }
     },
     [authRequiredForWrites, writeAuthSecret, writeAuthToken],
@@ -335,7 +336,7 @@ export function useWritesActions({
 
       let exportResult: DiagnosticExportResponse | null = data;
       let appendHistory = true;
-      let exportNotice = "诊断包导出成功";
+      let exportNotice = tr("writes.diagnosticExportNotice");
       try {
         const saved = await saveDiagnosticBundle(
           data.bundle_path,
@@ -350,20 +351,20 @@ export function useWritesActions({
             exportResult = { ...data, bundle_path: saved.destination_path };
           }
           exportNotice = saved.source_deleted
-            ? "诊断包已保存到本地并清理临时文件"
-            : "诊断包已保存到本地";
+            ? tr("writes.diagnosticSavedAndCleaned")
+            : tr("writes.diagnosticSaved");
         } else {
           appendHistory = false;
           exportResult = null;
           exportNotice = saved.source_deleted
-            ? "已取消保存，临时诊断包已清理"
-            : "已取消保存诊断包保存";
+            ? tr("writes.diagnosticSaveCancelledAndCleaned")
+            : tr("writes.diagnosticSaveCancelled");
         }
       } catch (error) {
         if (!ticket.isCurrent()) return;
 
-        const message = error instanceof Error ? error.message : "另存为失败";
-        exportNotice = `诊断包已导出（另存为失败: ${message}）`;
+        const message = error instanceof Error ? error.message : tr("writes.saveAsFailed");
+        exportNotice = tr("writes.diagnosticExportSaveFailedNotice", { message });
       }
 
       if (!ticket.isCurrent()) return;
@@ -392,7 +393,7 @@ export function useWritesActions({
       if (!ticket.isCurrent()) return;
       if (isAbortError(error)) return;
 
-      const message = getRequestErrorMessage(error, "诊断导出失败");
+      const message = getRequestErrorMessage(error, tr("writes.diagnosticExportFailed"));
       setNotice({ kind: "error", message });
     } finally {
       ticket.finish();
@@ -444,7 +445,7 @@ export function useWritesActions({
     setCancelResult(null);
     setCreateError(null);
     setCancelError(null);
-    setNotice({ kind: "ok", message: "已重置打印操作表单" });
+    setNotice({ kind: "ok", message: tr("writes.resetFormsNotice") });
   }, [
     cancelTask,
     createTask,
@@ -488,4 +489,8 @@ export function useWritesActions({
     onExportDiagnostics,
     onResetWriteForms,
   };
+}
+
+function tr(key: string, params?: Record<string, string | number | null | undefined>) {
+  return translate(getCurrentLocale(), key, params);
 }

@@ -1,4 +1,5 @@
 import { useCallback, type FormEvent } from "react";
+import { getCurrentLocale, translate } from "@/i18n";
 import { getRequestErrorMessage, isAbortError, requestBinary, requestJson } from "../api";
 import { formatTypstPreviewError } from "../typstPreviewError";
 import { buildPdfObjectUrlFromBytes, buildRequestId } from "../utils";
@@ -106,7 +107,7 @@ export function useWritesCreatePreviewActions({
         const data = parseCreateData();
         const printerId = createPrinterId.trim();
         if (!printerId) {
-          throw new Error("请选择托管打印机");
+          throw new Error(tr("writes.selectManagedPrinter"));
         }
 
         const payload = {
@@ -136,15 +137,15 @@ export function useWritesCreatePreviewActions({
         if (!ticket.isCurrent()) return;
 
         const message = result.idempotent
-          ? `任务已存在（幂等复用）: ${result.job_id}`
-          : `任务创建成功: ${result.job_id}`;
+          ? tr("writes.createIdempotent", { jobId: result.job_id })
+          : tr("writes.createSucceeded", { jobId: result.job_id });
         setNotice({ kind: "ok", message });
       } catch (error) {
         if (!ticket.isCurrent()) return;
         if (isAbortError(error)) return;
-        const message = getRequestErrorMessage(error, "创建任务失败");
+        const message = getRequestErrorMessage(error, tr("writes.createFailed"));
         setCreateError(message);
-        setNotice({ kind: "error", message: `创建任务失败: ${message}` });
+        setNotice({ kind: "error", message: tr("writes.createFailedWithMessage", { message }) });
       } finally {
         ticket.finish();
         if (ticket.isCurrent()) {
@@ -184,7 +185,7 @@ export function useWritesCreatePreviewActions({
           ? input.templateContent.trim()
           : resolveTemplateContent();
       if (!templateContent) {
-        throw new Error("模板内容不能为空");
+        throw new Error(tr("writes.templateContentRequired"));
       }
       const data =
         input?.dataJson != null
@@ -211,7 +212,7 @@ export function useWritesCreatePreviewActions({
 
       const contentType = response.contentType.toLowerCase();
       if (!contentType.includes("application/pdf")) {
-        throw new Error(`预览响应不是 PDF（content-type=${response.contentType || "unknown"}）`);
+        throw new Error(tr("writes.previewNotPdf", { contentType: response.contentType || "unknown" }));
       }
 
       const result: PreviewTypstResponse = {
@@ -231,7 +232,7 @@ export function useWritesCreatePreviewActions({
       if (!ticket.isCurrent()) return;
       if (isAbortError(error)) return;
 
-      const rawMessage = getRequestErrorMessage(error, "预览生成失败");
+      const rawMessage = getRequestErrorMessage(error, tr("writes.previewFailed"));
       const message = formatTypstPreviewError(
         rawMessage,
         input?.templateContent ?? createTemplateContent,
@@ -280,4 +281,8 @@ export function useWritesCreatePreviewActions({
     onPreviewTypst,
     onDismissPreview,
   };
+}
+
+function tr(key: string, params?: Record<string, string | number | null | undefined>) {
+  return translate(getCurrentLocale(), key, params);
 }

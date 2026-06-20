@@ -1,4 +1,5 @@
 import { normalizeBaseUrl } from "./utils"
+import { getCurrentLocale, translate } from "@/i18n"
 import type {
   AddPrinterResponse,
   ApiErrorBody,
@@ -18,17 +19,43 @@ import type {
 const DEFAULT_REQUEST_TIMEOUT_MS = 15_000
 const CLIENT_SETUP_STORAGE_KEY = "deepprint.clientSetup"
 export const REQUEST_TIMEOUT_MESSAGE =
-  "请求超时，请检查 Agent URL、网络与服务状态"
+  "Request timed out. Check the Agent URL, network, and service status."
 
 export class RequestTimeoutError extends Error {
   timeoutMs: number
   path: string
 
   constructor(path: string, timeoutMs: number) {
-    super(`请求超时（>${timeoutMs}ms）: ${path}`)
+    super(`Request timed out (>${timeoutMs}ms): ${path}`)
     this.name = "RequestTimeoutError"
     this.timeoutMs = timeoutMs
     this.path = path
+  }
+}
+
+export class ApiRequestError extends Error {
+  code: string | null
+  status: number
+  details: Record<string, unknown> | null
+  rawMessage: string
+
+  constructor({
+    code,
+    details,
+    message,
+    status,
+  }: {
+    code: string | null
+    details: Record<string, unknown> | null
+    message: string
+    status: number
+  }) {
+    super(message)
+    this.name = "ApiRequestError"
+    this.code = code
+    this.status = status
+    this.details = details
+    this.rawMessage = message
   }
 }
 
@@ -162,8 +189,8 @@ async function executeRequest(
       throw error
     }
 
-    const message = error instanceof Error ? error.message : "网络请求失败"
-    throw new Error(`网络请求失败: ${message}`)
+    const message = error instanceof Error ? error.message : String(error)
+    throw new Error(translate(getCurrentLocale(), "errors.NETWORK_ERROR", { message }))
   }
 
   if (timeoutHandle) {
@@ -186,19 +213,26 @@ async function parseJsonOrTextPayload(response: Response): Promise<unknown> {
     }
     return await response.text()
   } catch (error) {
-    const message = error instanceof Error ? error.message : "响应解析失败"
-    throw new Error(`响应解析失败: ${message}`)
+    const message = error instanceof Error ? error.message : String(error)
+    throw new Error(translate(getCurrentLocale(), "errors.PARSE_ERROR", { message }))
   }
 }
 
 function buildHttpError(response: Response, payload: unknown): Error {
   const body = payload as ApiErrorBody | null
-  const code = body?.code ? `${body.code}: ` : ""
+  const code = typeof body?.code === "string" ? body.code : null
+  const details =
+    body?.details && typeof body.details === "object" ? body.details : null
   const message =
     typeof payload === "string"
       ? payload
       : body?.error || body?.message || `HTTP ${response.status}`
-  return new Error(`${code}${message}`)
+  return new ApiRequestError({
+    code,
+    details,
+    message,
+    status: response.status,
+  })
 }
 
 export async function requestJson<T>(
@@ -230,8 +264,8 @@ export async function requestBinary(
   try {
     buffer = await response.arrayBuffer()
   } catch (error) {
-    const message = error instanceof Error ? error.message : "响应解析失败"
-    throw new Error(`响应解析失败: ${message}`)
+    const message = error instanceof Error ? error.message : String(error)
+    throw new Error(translate(getCurrentLocale(), "errors.PARSE_ERROR", { message }))
   }
 
   return {
@@ -262,11 +296,17 @@ export function isTimeoutError(error: unknown): boolean {
 
 export function getRequestErrorMessage(
   error: unknown,
-  fallbackMessage: string,
-  timeoutMessage = REQUEST_TIMEOUT_MESSAGE
+  fallbackMessage: string
 ): string {
   if (isTimeoutError(error)) {
-    return timeoutMessage
+    return translate(getCurrentLocale(), "errors.REQUEST_TIMEOUT")
+  }
+
+  if (error instanceof ApiRequestError && error.code) {
+    const translated = translate(getCurrentLocale(), `errors.${error.code}`, {
+      message: error.rawMessage,
+    })
+    if (translated !== `errors.${error.code}`) return translated
   }
 
   if (error instanceof Error) {

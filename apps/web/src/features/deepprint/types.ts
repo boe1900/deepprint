@@ -363,6 +363,7 @@ export interface ApiErrorBody {
   code?: string
   error?: string
   message?: string
+  details?: Record<string, unknown>
 }
 
 export interface ClientSetupState {

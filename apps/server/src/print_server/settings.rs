@@ -63,7 +63,7 @@ pub(crate) async fn test_cups_connection(
     Ok(Json(CupsConnectionTestResponse {
         ok: true,
         cups_base_url: normalized,
-        message: "CUPS 服务可访问".to_string(),
+        message: "CUPS service is reachable".to_string(),
     }))
 }
 
@@ -72,14 +72,14 @@ fn normalize_cups_base_url(raw: &str) -> ApiResult<String> {
     if trimmed.is_empty() {
         return Err(ApiError::bad_request(
             "INVALID_CUPS_BASE_URL",
-            "CUPS 地址不能为空",
+            "CUPS URL is required",
         ));
     }
 
     let parsed = url::Url::parse(trimmed).map_err(|err| {
         ApiError::bad_request(
             "INVALID_CUPS_BASE_URL",
-            format!("CUPS 地址格式不正确: {err}"),
+            format!("CUPS URL is invalid: {err}"),
         )
     })?;
 
@@ -88,7 +88,7 @@ fn normalize_cups_base_url(raw: &str) -> ApiResult<String> {
         scheme => {
             return Err(ApiError::bad_request(
                 "INVALID_CUPS_BASE_URL",
-                format!("不支持的 CUPS 协议: {scheme}"),
+                format!("unsupported CUPS URL scheme: {scheme}"),
             ));
         }
     }
@@ -96,7 +96,7 @@ fn normalize_cups_base_url(raw: &str) -> ApiResult<String> {
     if parsed.host_str().unwrap_or_default().trim().is_empty() {
         return Err(ApiError::bad_request(
             "INVALID_CUPS_BASE_URL",
-            "CUPS 地址必须包含主机名或 IP",
+            "CUPS URL must include a host name or IP",
         ));
     }
 

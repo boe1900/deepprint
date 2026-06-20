@@ -9,6 +9,7 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { SettingsProvider, useSettings } from "@/hooks/use-settings"
 import { useDeepprintController } from "@/features/deepprint"
 import type { AuthUser } from "@/features/auth/types"
+import { useI18n } from "@/i18n"
 
 const PrintPage = lazy(() =>
   import("@/features/deepprint/pages/PrintPage").then((module) => ({
@@ -158,10 +159,12 @@ function SettingsOverlayHost({
 }
 
 function PageLoadingState() {
+  const { t } = useI18n()
+
   return (
     <div className="flex min-h-0 flex-1 items-center justify-center bg-background px-6 py-10">
       <div className="rounded-xl border bg-card px-5 py-4 text-sm text-muted-foreground shadow-sm">
-        正在加载页面...
+        {t("common.loadingPage")}
       </div>
     </div>
   )

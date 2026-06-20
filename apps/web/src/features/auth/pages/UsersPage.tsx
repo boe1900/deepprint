@@ -54,6 +54,7 @@ import {
 import { authQueryKeys, createAuthUsersQueryOptions } from "@/features/auth/queries"
 import type { AuthUser, AuthUserRole, AuthUserStatus } from "@/features/auth/types"
 import { userAvatarInitial, userAvatarTone } from "@/features/auth/user-avatar"
+import { useI18n, type MessageKey } from "@/i18n"
 import { cn } from "@/lib/utils"
 
 type UsersPageProps = {
@@ -78,6 +79,7 @@ const initialCreateForm: CreateUserForm = {
 }
 
 export function UsersPage({ baseUrl, currentUser }: UsersPageProps) {
+  const { t } = useI18n()
   const queryClient = useQueryClient()
   const [createOpen, setCreateOpen] = useState(false)
   const [createForm, setCreateForm] = useState<CreateUserForm>(initialCreateForm)
@@ -130,7 +132,7 @@ export function UsersPage({ baseUrl, currentUser }: UsersPageProps) {
 
   const resetMutation = useMutation({
     mutationFn: () => {
-      if (!resetTarget) throw new Error("请选择用户")
+      if (!resetTarget) throw new Error(t("users.selectUser"))
       return resetUserPassword(baseUrl, resetTarget.id, resetPassword)
     },
     onSuccess: async () => {
@@ -164,14 +166,14 @@ export function UsersPage({ baseUrl, currentUser }: UsersPageProps) {
         user.username,
         user.display_name,
         user.email ?? "",
-        roleLabel(user.role),
-        statusLabel(user.status),
+        roleLabel(user.role, t),
+        statusLabel(user.status, t),
       ]
         .join(" ")
         .toLowerCase()
         .includes(keyword)
     )
-  }, [search, users])
+  }, [search, t, users])
   const adminUsers = users.filter((user) => user.role === "admin").length
   const createError =
     createMutation.error instanceof Error ? createMutation.error.message : null
@@ -194,10 +196,10 @@ export function UsersPage({ baseUrl, currentUser }: UsersPageProps) {
         <header className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
           <div className="min-w-0">
             <h1 className="font-heading text-2xl font-semibold tracking-tight">
-              用户管理
+              {t("users.title")}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              管理当前实例的本地账号、角色权限和登录安全。
+              {t("users.description")}
             </p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -207,25 +209,25 @@ export function UsersPage({ baseUrl, currentUser }: UsersPageProps) {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 className="pl-8"
-                placeholder="搜索用户..."
+                placeholder={t("users.searchPlaceholder")}
               />
             </div>
             <Button
               type="button"
               variant="outline"
               size="icon"
-              title="刷新列表"
+              title={t("common.refresh")}
               onClick={() => void usersQuery.refetch()}
               disabled={usersQuery.isFetching}
             >
               <RefreshCwIcon
                 className={usersQuery.isFetching ? "animate-spin" : undefined}
               />
-              <span className="sr-only">刷新列表</span>
+              <span className="sr-only">{t("common.refresh")}</span>
             </Button>
             <Button type="button" onClick={() => setCreateOpen(true)}>
               <PlusIcon data-icon="inline-start" />
-              新建用户
+              {t("users.newUser")}
             </Button>
           </div>
         </header>
@@ -234,7 +236,7 @@ export function UsersPage({ baseUrl, currentUser }: UsersPageProps) {
           <ErrorNotice>
             {usersQuery.error instanceof Error
               ? usersQuery.error.message
-              : "加载用户失败"}
+              : t("users.loadFailed")}
           </ErrorNotice>
         ) : null}
         {statusError ? <ErrorNotice>{statusError}</ErrorNotice> : null}
@@ -244,12 +246,12 @@ export function UsersPage({ baseUrl, currentUser }: UsersPageProps) {
             <Table>
               <TableHeader className="bg-muted/40">
                 <TableRow>
-                  <TableHead className="pl-6">用户</TableHead>
-                  <TableHead className="w-32">角色</TableHead>
-                  <TableHead className="w-32">状态</TableHead>
-                  <TableHead className="w-40">安全要求</TableHead>
-                  <TableHead className="w-48">更新时间</TableHead>
-                  <TableHead className="w-40 pr-6 text-right">操作</TableHead>
+                  <TableHead className="pl-6">{t("users.headUser")}</TableHead>
+                  <TableHead className="w-32">{t("users.headRole")}</TableHead>
+                  <TableHead className="w-32">{t("users.headStatus")}</TableHead>
+                  <TableHead className="w-40">{t("users.headSecurity")}</TableHead>
+                  <TableHead className="w-48">{t("users.headUpdated")}</TableHead>
+                  <TableHead className="w-40 pr-6 text-right">{t("users.headActions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -320,10 +322,11 @@ export function UsersPage({ baseUrl, currentUser }: UsersPageProps) {
 
           <div className="flex items-center justify-between border-t bg-muted/20 px-4 py-3 text-xs text-muted-foreground sm:px-6">
             <span>
-              共 {filteredUsers.length} 个用户
-              {search.trim() ? `，来自 ${users.length} 个账号` : ""}
+              {search.trim()
+                ? t("users.footerCountFiltered", { count: filteredUsers.length, total: users.length })
+                : t("users.footerCount", { count: filteredUsers.length })}
             </span>
-            <span>{adminUsers} 个管理员</span>
+            <span>{t("users.adminCount", { count: adminUsers })}</span>
           </div>
         </section>
       </div>
@@ -331,18 +334,18 @@ export function UsersPage({ baseUrl, currentUser }: UsersPageProps) {
       <Sheet open={createOpen} onOpenChange={setCreateOpen}>
         <SheetContent className="w-full max-w-none data-[side=right]:w-full data-[side=right]:sm:max-w-md">
           <SheetHeader className="border-b px-6 py-5">
-            <SheetTitle>新建用户</SheetTitle>
+            <SheetTitle>{t("users.newUser")}</SheetTitle>
             <SheetDescription>
-              新用户将使用临时密码，首次登录后必须修改。
+              {t("users.createDescription")}
             </SheetDescription>
           </SheetHeader>
           <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-6 py-5">
             <LabeledInput
               id="create-username"
-              label="用户名"
+              label={t("auth.username")}
               required
               autoComplete="username"
-              placeholder="输入用于登录的账号"
+              placeholder={t("auth.username")}
               value={createForm.username}
               disabled={createMutation.isPending}
               onChange={(value) =>
@@ -351,8 +354,8 @@ export function UsersPage({ baseUrl, currentUser }: UsersPageProps) {
             />
             <LabeledInput
               id="create-display-name"
-              label="显示名称"
-              placeholder="例如：张三"
+              label={t("users.displayName")}
+              placeholder={t("users.displayNamePlaceholder")}
               value={createForm.displayName}
               disabled={createMutation.isPending}
               onChange={(value) =>
@@ -361,7 +364,7 @@ export function UsersPage({ baseUrl, currentUser }: UsersPageProps) {
             />
             <LabeledInput
               id="create-email"
-              label="邮箱"
+              label={t("users.email")}
               type="email"
               autoComplete="email"
               placeholder="example@corp.com"
@@ -372,7 +375,7 @@ export function UsersPage({ baseUrl, currentUser }: UsersPageProps) {
               }
             />
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="create-role">角色分配</Label>
+              <Label htmlFor="create-role">{t("users.roleAssignment")}</Label>
               <Select
                 value={createForm.role}
                 onValueChange={(value) =>
@@ -383,12 +386,12 @@ export function UsersPage({ baseUrl, currentUser }: UsersPageProps) {
                 }
               >
                 <SelectTrigger id="create-role" className="w-full">
-                  <SelectValue placeholder="选择角色" />
+                  <SelectValue placeholder={t("users.selectRole")} />
                 </SelectTrigger>
                 <SelectContent align="start">
                   <SelectGroup>
-                    <SelectItem value="operator">操作员（仅限日常操作）</SelectItem>
-                    <SelectItem value="admin">管理员（拥有所有权限）</SelectItem>
+                    <SelectItem value="operator">{t("users.roleOperatorOption")}</SelectItem>
+                    <SelectItem value="admin">{t("users.roleAdminOption")}</SelectItem>
                   </SelectGroup>
                 </SelectContent>
               </Select>
@@ -396,11 +399,11 @@ export function UsersPage({ baseUrl, currentUser }: UsersPageProps) {
             <div className="border-t pt-5">
               <LabeledInput
                 id="create-password"
-                label="初始临时密码"
+                label={t("users.initialPassword")}
                 required
                 type="password"
                 autoComplete="new-password"
-                placeholder="至少包含 8 个字符"
+                placeholder={t("users.initialPasswordPlaceholder")}
                 value={createForm.password}
                 disabled={createMutation.isPending}
                 onChange={(value) =>
@@ -417,7 +420,7 @@ export function UsersPage({ baseUrl, currentUser }: UsersPageProps) {
               disabled={createMutation.isPending}
               onClick={() => setCreateOpen(false)}
             >
-              取消
+              {t("common.cancel")}
             </Button>
             <Button
               type="button"
@@ -429,7 +432,7 @@ export function UsersPage({ baseUrl, currentUser }: UsersPageProps) {
               ) : (
                 <PlusIcon data-icon="inline-start" />
               )}
-              创建用户
+              {t("users.createUser")}
             </Button>
           </SheetFooter>
         </SheetContent>
@@ -446,28 +449,29 @@ export function UsersPage({ baseUrl, currentUser }: UsersPageProps) {
       >
         <SheetContent className="w-full max-w-none data-[side=right]:w-full data-[side=right]:sm:max-w-md">
           <SheetHeader className="border-b px-6 py-5">
-            <SheetTitle>重置密码</SheetTitle>
+            <SheetTitle>{t("users.resetTitle")}</SheetTitle>
             <SheetDescription>
               {resetTarget
-                ? `为 ${resetTarget.display_name || resetTarget.username} 设置新的临时登录密码。`
-                : "为用户设置新的临时密码。"}
+                ? t("users.resetDescriptionWithName", { name: resetTarget.display_name || resetTarget.username })
+                : t("users.resetDescription")}
             </SheetDescription>
           </SheetHeader>
           <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-6 py-5">
             <div className="flex gap-3 rounded-lg border border-amber-100 bg-amber-50/50 p-3 text-sm text-amber-800">
               <AlertCircleIcon className="mt-0.5 size-5 shrink-0 text-amber-500" />
               <p className="leading-relaxed">
-                重置后，该用户当前的登录会话将立即失效。下次登录时将
-                <strong className="font-semibold">强制要求修改密码</strong>。
+                {t("users.resetWarningBefore")}
+                <strong className="font-semibold">{t("users.resetWarningStrong")}</strong>
+                {t("users.resetWarningAfter")}
               </p>
             </div>
             <LabeledInput
               id="reset-password"
-              label="新临时密码"
+              label={t("users.newTemporaryPassword")}
               required
               type="password"
               autoComplete="new-password"
-              placeholder="请输入至少 8 位新密码"
+              placeholder={t("users.newPasswordPlaceholder")}
               value={resetPassword}
               disabled={resetMutation.isPending}
               onChange={setResetPassword}
@@ -484,7 +488,7 @@ export function UsersPage({ baseUrl, currentUser }: UsersPageProps) {
                 setResetPassword("")
               }}
             >
-              取消
+              {t("common.cancel")}
             </Button>
             <Button
               type="button"
@@ -496,7 +500,7 @@ export function UsersPage({ baseUrl, currentUser }: UsersPageProps) {
               ) : (
                 <KeyRoundIcon data-icon="inline-start" />
               )}
-              确认重置
+              {t("users.confirmReset")}
             </Button>
           </SheetFooter>
         </SheetContent>
@@ -512,18 +516,18 @@ export function UsersPage({ baseUrl, currentUser }: UsersPageProps) {
       >
         <SheetContent className="w-full max-w-none data-[side=right]:w-full data-[side=right]:sm:max-w-md">
           <SheetHeader className="border-b px-6 py-5">
-            <SheetTitle>删除用户</SheetTitle>
+            <SheetTitle>{t("users.deleteTitle")}</SheetTitle>
             <SheetDescription>
               {deleteTarget
-                ? `确认删除 ${deleteTarget.display_name || deleteTarget.username}？`
-                : "确认删除该用户？"}
+                ? t("users.deleteDescriptionWithName", { name: deleteTarget.display_name || deleteTarget.username })
+                : t("users.deleteDescription")}
             </SheetDescription>
           </SheetHeader>
           <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-6 py-5">
             <div className="flex gap-3 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
               <AlertCircleIcon className="mt-0.5 size-5 shrink-0" />
               <p className="leading-relaxed">
-                删除后该账号将无法登录，相关登录会话会立即失效。此操作不可撤销。
+                {t("users.deleteWarning")}
               </p>
             </div>
             {deleteTarget ? (
@@ -540,7 +544,7 @@ export function UsersPage({ baseUrl, currentUser }: UsersPageProps) {
               disabled={deleteMutation.isPending}
               onClick={() => setDeleteTarget(null)}
             >
-              取消
+                  {t("common.cancel")}
             </Button>
             <Button
               type="button"
@@ -555,7 +559,7 @@ export function UsersPage({ baseUrl, currentUser }: UsersPageProps) {
               ) : (
                 <Trash2Icon data-icon="inline-start" />
               )}
-              确认删除
+              {t("users.confirmDelete")}
             </Button>
           </SheetFooter>
         </SheetContent>
@@ -635,6 +639,7 @@ function UserMobileCard({
   statusMutation: ReturnType<typeof useMutation<UserResponseLike, Error, StatusMutationVariables>>
   user: AuthUser
 }) {
+  const { t } = useI18n()
   const isSelf = currentUserId === user.id
   const nextStatus = user.status === "active" ? "disabled" : "active"
   const statusPending =
@@ -647,13 +652,13 @@ function UserMobileCard({
         <RoleBadge role={user.role} />
       </div>
       <div className="grid gap-3 rounded-lg bg-muted/30 p-3 text-sm sm:grid-cols-3">
-        <InfoLine label="状态">
+        <InfoLine label={t("users.headStatus")}>
           <StatusIndicator status={user.status} />
         </InfoLine>
-        <InfoLine label="安全要求">
+        <InfoLine label={t("users.headSecurity")}>
           <SecurityState mustChangePassword={user.must_change_password} />
         </InfoLine>
-        <InfoLine label="更新时间">
+        <InfoLine label={t("users.headUpdated")}>
           <span className="font-mono text-xs text-muted-foreground">
             {formatDateTime(user.updated_at)}
           </span>
@@ -683,6 +688,7 @@ type UserResponseLike = {
 }
 
 function UserIdentity({ isSelf, user }: { isSelf: boolean; user: AuthUser }) {
+  const { t } = useI18n()
   const displayName = user.display_name || user.username
 
   return (
@@ -697,7 +703,7 @@ function UserIdentity({ isSelf, user }: { isSelf: boolean; user: AuthUser }) {
           <span className="truncate font-medium text-foreground">{displayName}</span>
           {isSelf ? (
             <Badge variant="outline" className="h-4 shrink-0 px-1.5 text-[10px]">
-              我自己
+              {t("users.self")}
             </Badge>
           ) : null}
         </div>
@@ -717,24 +723,26 @@ function UserIdentity({ isSelf, user }: { isSelf: boolean; user: AuthUser }) {
 }
 
 function RoleBadge({ role }: { role: string }) {
+  const { t } = useI18n()
   if (role === "admin") {
     return (
       <Badge
         variant="outline"
         className="border-violet-500/20 bg-violet-500/10 text-violet-700"
       >
-        管理员
+        {t("users.roleAdmin")}
       </Badge>
     )
   }
   return (
     <Badge variant="outline" className="bg-muted/60 text-muted-foreground">
-      操作员
+      {t("users.roleOperator")}
     </Badge>
   )
 }
 
 function StatusIndicator({ status }: { status: string }) {
+  const { t } = useI18n()
   const active = status === "active"
   return (
     <div className="flex items-center gap-1.5 text-sm">
@@ -745,7 +753,7 @@ function StatusIndicator({ status }: { status: string }) {
         )}
       />
       <span className={active ? "text-foreground" : "text-muted-foreground"}>
-        {statusLabel(status)}
+        {statusLabel(status, t)}
       </span>
     </div>
   )
@@ -756,18 +764,19 @@ function SecurityState({
 }: {
   mustChangePassword: boolean
 }) {
+  const { t } = useI18n()
   if (mustChangePassword) {
     return (
       <div className="flex w-fit items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-700 ring-1 ring-amber-100">
         <ShieldAlertIcon className="size-3.5" />
-        需修改密码
+        {t("users.passwordRequired")}
       </div>
     )
   }
   return (
     <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
       <ShieldCheckIcon className="size-3.5" />
-      正常
+      {t("users.normal")}
     </span>
   )
 }
@@ -791,7 +800,9 @@ function UserActions({
   status: string
   statusPending: boolean
 }) {
+  const { t } = useI18n()
   const active = status === "active"
+  const toggleLabel = active ? t("users.actionDisableUser") : t("users.actionEnableUser")
   return (
     <div
       className={cn(
@@ -804,18 +815,18 @@ function UserActions({
         variant="ghost"
         size={mobile ? "sm" : "icon-sm"}
         disabled={disabled}
-        title="重置密码"
+        title={t("users.actionResetPassword")}
         onClick={onReset}
       >
         <KeyRoundIcon data-icon={mobile ? "inline-start" : undefined} />
-        {mobile ? "重置密码" : <span className="sr-only">重置密码</span>}
+        {mobile ? t("users.actionResetPassword") : <span className="sr-only">{t("users.actionResetPassword")}</span>}
       </Button>
       <Button
         type="button"
         variant="ghost"
         size={mobile ? "sm" : "icon-sm"}
         disabled={disabled || statusPending}
-        title={active ? "禁用用户" : "启用用户"}
+        title={toggleLabel}
         className={cn(
           active
             ? "text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
@@ -833,14 +844,14 @@ function UserActions({
         ) : (
           <UserCheckIcon data-icon={mobile ? "inline-start" : undefined} />
         )}
-        {mobile ? active ? "禁用用户" : "启用用户" : <span className="sr-only">{active ? "禁用用户" : "启用用户"}</span>}
+        {mobile ? toggleLabel : <span className="sr-only">{toggleLabel}</span>}
       </Button>
       <Button
         type="button"
         variant="ghost"
         size={mobile ? "sm" : "icon-sm"}
         disabled={disabled || deletePending}
-        title="删除用户"
+        title={t("users.actionDeleteUser")}
         className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
         onClick={onDelete}
       >
@@ -852,7 +863,7 @@ function UserActions({
         ) : (
           <Trash2Icon data-icon={mobile ? "inline-start" : undefined} />
         )}
-        {mobile ? "删除" : <span className="sr-only">删除用户</span>}
+        {mobile ? t("common.delete") : <span className="sr-only">{t("users.actionDeleteUser")}</span>}
       </Button>
     </div>
   )
@@ -874,12 +885,13 @@ function InfoLine({
 }
 
 function LoadingRow() {
+  const { t } = useI18n()
   return (
     <TableRow>
       <TableCell colSpan={6}>
         <div className="flex items-center gap-2 py-10 text-sm text-muted-foreground">
           <Loader2Icon className="size-4 animate-spin" />
-          正在加载用户
+          {t("users.loading")}
         </div>
       </TableCell>
     </TableRow>
@@ -897,18 +909,19 @@ function EmptyRow({ search }: { search: string }) {
 }
 
 function EmptyState({ search }: { search: string }) {
+  const { t } = useI18n()
   return (
     <div className="flex flex-col items-center justify-center px-6 py-16 text-center text-muted-foreground">
       <div className="flex size-14 items-center justify-center rounded-full bg-muted">
         <InboxIcon className="size-7" />
       </div>
       <div className="mt-4 text-sm font-medium text-foreground">
-        {search.trim() ? "没有找到符合条件的用户" : "暂无用户"}
+        {search.trim() ? t("users.emptyFilteredTitle") : t("users.emptyTitle")}
       </div>
       <p className="mt-1 max-w-sm text-xs leading-5">
         {search.trim()
-          ? "试试更换用户名、邮箱或角色关键词。"
-          : "创建第一个用户后，这里会展示账号、角色和安全状态。"}
+          ? t("users.emptyFilteredDescription")
+          : t("users.emptyDescription")}
       </p>
     </div>
   )
@@ -963,15 +976,15 @@ function LabeledInput({
   )
 }
 
-function roleLabel(role: string) {
-  if (role === "admin") return "管理员"
-  if (role === "operator") return "操作员"
+function roleLabel(role: string, t: (key: MessageKey) => string) {
+  if (role === "admin") return t("users.roleAdmin")
+  if (role === "operator") return t("users.roleOperator")
   return role
 }
 
-function statusLabel(status: string) {
-  if (status === "active") return "正常"
-  if (status === "disabled") return "已禁用"
+function statusLabel(status: string, t: (key: MessageKey) => string) {
+  if (status === "active") return t("users.statusActive")
+  if (status === "disabled") return t("users.statusDisabled")
   return status
 }
 

@@ -45,6 +45,7 @@ import { createJobsListQueryOptions, deepprintQueryKeys } from "@/features/deepp
 import type { JobResponse } from "@/features/deepprint/types";
 import { formatUnixSec, statusLabel } from "@/features/deepprint/utils";
 import { cn } from "@/lib/utils";
+import { getCurrentLocale, translate, useI18n, type MessageKey } from "@/i18n";
 
 type JobStatus =
   | "needs_attention"
@@ -71,13 +72,13 @@ const ALL_JOB_STATUSES: JobStatus[] = [
 ];
 const STATUS_TABS: Array<{
   value: JobStatusTab;
-  label: string;
+  labelKey: MessageKey;
   statuses: JobStatus[];
 }> = [
-  { value: "needs_attention", label: "待确认", statuses: ["needs_attention"] },
-  { value: "active", label: "进行中", statuses: ["queued", "rendering", "submitting", "printing"] },
-  { value: "finished", label: "已结束", statuses: ["succeeded", "failed", "canceled"] },
-  { value: "all", label: "全部", statuses: ALL_JOB_STATUSES },
+  { value: "needs_attention", labelKey: "status.needs_attention", statuses: ["needs_attention"] },
+  { value: "active", labelKey: "history.active", statuses: ["queued", "rendering", "submitting", "printing"] },
+  { value: "finished", labelKey: "common.finished", statuses: ["succeeded", "failed", "canceled"] },
+  { value: "all", labelKey: "common.all", statuses: ALL_JOB_STATUSES },
 ];
 const ACTIVE_JOB_STATUSES = new Set(["queued", "rendering", "submitting", "printing"]);
 
@@ -88,6 +89,7 @@ export function PrintHistoryPage({
   controller: DeepprintController;
   showHeader?: boolean;
 }) {
+  const { t } = useI18n();
   const { actions, agent, ui, writes } = controller;
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
@@ -122,17 +124,17 @@ export function PrintHistoryPage({
 
   const printerOptions = useMemo(
     () => [
-      { value: "all", label: "全部打印机" },
+      { value: "all", label: t("history.printerAll") },
       ...agent.printers.map((printer) => ({
         value: printer.id,
         label: printer.name,
       })),
     ],
-    [agent.printers],
+    [agent.printers, t],
   );
   const selectedPrinterLabel =
     printerOptions.find((option) => option.value === printerFilter)?.label ??
-    (printerFilter === "all" ? "全部打印机" : "已选择打印机");
+    (printerFilter === "all" ? t("history.printerAll") : t("history.printerSelected"));
 
   const loadJobs = async (showNotice = false) => {
     try {
@@ -149,10 +151,10 @@ export function PrintHistoryPage({
         staleTime: 0,
       });
       if (showNotice) {
-        ui.setNotice({ kind: "ok", message: "打印任务列表已刷新" });
+        ui.setNotice({ kind: "ok", message: t("history.refreshed") });
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "加载打印任务失败";
+      const message = error instanceof Error ? error.message : t("history.loadFailed");
       ui.setNotice({ kind: "error", message });
     }
   };
@@ -189,9 +191,9 @@ export function PrintHistoryPage({
       <Card className="gap-0 overflow-hidden py-0">
         <CardHeader className="border-b bg-muted/20 px-4 py-4 sm:px-5">
           <div className="min-w-0">
-            <CardTitle>任务记录</CardTitle>
+            <CardTitle>{t("history.title")}</CardTitle>
             <CardDescription>
-              共 {total} 条，按更新时间倒序展示。筛选条件会直接作用于后端列表。
+              {t("history.description", { total })}
             </CardDescription>
           </div>
           <CardAction>
@@ -206,7 +208,7 @@ export function PrintHistoryPage({
                 data-icon="inline-start"
                 className={loading ? "animate-spin" : undefined}
               />
-              刷新
+              {t("common.refresh")}
             </Button>
           </CardAction>
         </CardHeader>
@@ -224,7 +226,7 @@ export function PrintHistoryPage({
                 <TabsList className="grid h-auto w-full grid-cols-2 sm:inline-flex sm:w-auto">
                   {STATUS_TABS.map((tab) => (
                     <TabsTrigger key={tab.value} value={tab.value} className="px-3 py-1.5">
-                      {tab.label}
+                      {t(tab.labelKey)}
                       {tab.value === "needs_attention" && (agent.health?.needs_attention_jobs ?? 0) > 0 ? (
                         <Badge variant="destructive" className="ml-1 h-4 px-1.5 text-[10px]">
                           {agent.health?.needs_attention_jobs}
@@ -245,7 +247,7 @@ export function PrintHistoryPage({
                       setSearch(event.target.value);
                     }}
                     className="pl-8"
-                    placeholder="搜索文件、任务 ID、打印机..."
+                    placeholder={t("history.searchPlaceholder")}
                   />
                 </div>
                 <Select
@@ -277,9 +279,9 @@ export function PrintHistoryPage({
             <div className="flex items-start gap-3 border-b border-amber-100 bg-amber-50/50 px-6 py-3">
               <AlertCircleIcon className="mt-0.5 size-5 shrink-0 text-amber-500" />
               <div className="min-w-0">
-                <h4 className="text-sm font-medium text-amber-800">需人工介入</h4>
+                <h4 className="text-sm font-medium text-amber-800">{t("history.attentionTitle")}</h4>
                 <p className="mt-0.5 text-xs text-amber-600">
-                  这些任务状态长期未知或提交失败，可能需要您检查物理打印机状态或重新排队。
+                  {t("history.attentionDescription")}
                 </p>
               </div>
             </div>
@@ -289,11 +291,11 @@ export function PrintHistoryPage({
             <Table>
               <TableHeader className="sticky top-0 z-10 bg-card">
                 <TableRow>
-                  <TableHead className="w-[34%] pl-5">任务来源 / ID</TableHead>
-                  <TableHead>当前状态</TableHead>
-                  <TableHead>目标打印机</TableHead>
-                  <TableHead>最后更新</TableHead>
-                  <TableHead className="pr-5 text-right">操作</TableHead>
+                  <TableHead className="w-[34%] pl-5">{t("history.sourceId")}</TableHead>
+                  <TableHead>{t("history.currentStatus")}</TableHead>
+                  <TableHead>{t("history.targetPrinter")}</TableHead>
+                  <TableHead>{t("history.updatedAt")}</TableHead>
+                  <TableHead className="pr-5 text-right">{t("history.actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -326,7 +328,7 @@ export function PrintHistoryPage({
                 ) : (
                   <TableRow>
                     <TableCell colSpan={5}>
-                      <EmptyState activeTabLabel={activeTab.label} search={normalizedSearch} />
+                      <EmptyState activeTabLabel={t(activeTab.labelKey)} search={normalizedSearch} />
                     </TableCell>
                   </TableRow>
                 )}
@@ -362,13 +364,13 @@ export function PrintHistoryPage({
                 </article>
               ))
             ) : (
-              <EmptyState activeTabLabel={activeTab.label} search={normalizedSearch} />
+              <EmptyState activeTabLabel={t(activeTab.labelKey)} search={normalizedSearch} />
             )}
           </div>
 
           <div className="flex flex-col gap-3 border-t bg-muted/10 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <div className="text-xs text-muted-foreground">
-              第 {page} / {totalPages} 页，当前筛选共 {total} 条
+              {t("history.pageInfo", { page, totalPages, total })}
             </div>
             <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
               <Button
@@ -378,7 +380,7 @@ export function PrintHistoryPage({
                 disabled={loading || page <= 1}
                 onClick={() => setPage((current) => Math.max(1, current - 1))}
               >
-                上一页
+                {t("history.previousPage")}
               </Button>
               <Button
                 type="button"
@@ -387,7 +389,7 @@ export function PrintHistoryPage({
                 disabled={loading || page >= totalPages}
                 onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
               >
-                下一页
+                {t("history.nextPage")}
               </Button>
             </div>
           </div>
@@ -404,6 +406,8 @@ function SectionHeader({
   activeJobsCount: number | null;
   needsAttentionCount: number | null;
 }) {
+  const { t } = useI18n();
+
   return (
     <div className="overflow-hidden rounded-xl border bg-card">
       <div className="grid gap-4 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:p-5">
@@ -413,16 +417,16 @@ function SectionHeader({
             DeepPrint Jobs
           </div>
           <h1 className="mt-3 font-heading text-2xl font-semibold tracking-tight text-foreground">
-            打印任务中心
+            {t("nav.history")}
           </h1>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
-            查看打印队列、历史任务和异常状态，支持按状态、打印机和关键字快速定位。
+            {t("history.summaryDescription")}
           </p>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:w-64">
-          <SummaryPill label="进行中" value={activeJobsCount ?? "-"} tone="info" />
+          <SummaryPill label={t("history.active")} value={activeJobsCount ?? "-"} tone="info" />
           <SummaryPill
-            label="待确认"
+            label={t("status.needs_attention")}
             value={needsAttentionCount ?? "-"}
             tone={(needsAttentionCount ?? 0) > 0 ? "danger" : "neutral"}
           />
@@ -572,8 +576,10 @@ function JobActions({
   job: JobResponse;
   onCancel: () => void;
 }) {
+  const { t } = useI18n();
+
   if (!canCancelJob(job.status)) {
-    return <span className="text-xs text-muted-foreground">无操作</span>;
+    return <span className="text-xs text-muted-foreground">{t("history.noAction")}</span>;
   }
   return (
     <Button
@@ -584,7 +590,7 @@ function JobActions({
       onClick={onCancel}
     >
       {canceling ? <Loader2Icon data-icon="inline-start" className="animate-spin" /> : null}
-      取消任务
+      {t("history.cancelJob")}
     </Button>
   );
 }
@@ -596,16 +602,18 @@ function EmptyState({
   activeTabLabel: string;
   search: string | null;
 }) {
+  const { t } = useI18n();
+
   return (
     <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
       <div className="flex size-14 items-center justify-center rounded-full bg-muted">
         <InboxIcon className="size-7 text-muted-foreground" />
       </div>
-      <div className="mt-4 text-sm font-medium">暂无打印任务</div>
+      <div className="mt-4 text-sm font-medium">{t("history.emptyTitle")}</div>
       <p className="mt-1 max-w-sm text-xs leading-5 text-muted-foreground">
         {search
-          ? `没有找到包含“${search}”的${activeTabLabel}任务。`
-          : `当前 ${activeTabLabel} 筛选下没有任务。`}
+          ? t("history.emptyFiltered", { search, tab: activeTabLabel })
+          : t("history.emptyTab", { tab: activeTabLabel })}
       </p>
     </div>
   );
@@ -645,8 +653,8 @@ function getStatusParam(tab: JobStatusTab) {
 
 function summarizeJob(job: JobResponse) {
   if (job.source_file_name) return job.source_file_name;
-  if (job.job_kind === "template") return "模板打印任务";
-  return job.job_kind || "打印任务";
+  if (job.job_kind === "template") return translate(getCurrentLocale(), "print.templatePrintJob");
+  return job.job_kind || translate(getCurrentLocale(), "print.printJob");
 }
 
 function formatJobId(jobId: string) {

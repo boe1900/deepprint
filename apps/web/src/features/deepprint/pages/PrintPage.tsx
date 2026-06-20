@@ -22,6 +22,7 @@ import { createPrinterDetailQueryOptions, createRecentJobsQueryOptions } from ".
 import type { JobResponse, PrinterCapabilities, PrinterInfo } from "../types";
 import { buildObjectUrl, formatBytes, formatUnixSec, statusLabel } from "../utils";
 import { printerStateLabel, selectDefaultPrinter, statusBadgeVariant } from "../ui";
+import { getCurrentLocale, translate, useI18n } from "@/i18n";
 
 type PrintPageProps = {
   controller: DeepprintController;
@@ -55,6 +56,7 @@ export function PrintPage({
   onNavigate,
   templatePrintRevision,
 }: PrintPageProps) {
+  const { t } = useI18n();
   const { actions, agent, jobs, ui, writes } = controller;
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -102,7 +104,7 @@ export function PrintPage({
   const capabilityError = selectedPrinterDetailQuery.error instanceof Error
     ? selectedPrinterDetailQuery.error.message
     : selectedPrinterDetailQuery.isError
-      ? "无法读取当前打印机能力"
+      ? t("print.capabilityReadFailed")
       : null;
   const activeFile = useMemo(
     () => printFiles.find((file) => file.id === activeFileId) ?? printFiles[0] ?? null,
@@ -322,12 +324,12 @@ export function PrintPage({
       .filter((file): file is UploadedPrintFile => Boolean(file));
 
     if (!nextFiles.length) {
-      ui.setNotice({ kind: "error", message: "当前仅支持选择 PDF 或图片文件" });
+      ui.setNotice({ kind: "error", message: t("print.unsupportedFiles") });
       return;
     }
 
     if (nextFiles.length !== selectedFiles.length) {
-      ui.setNotice({ kind: "error", message: "已跳过不支持的文件，仅添加 PDF 或图片" });
+      ui.setNotice({ kind: "error", message: t("print.unsupportedFilesSkipped") });
     }
 
     syncPrintFiles((current) => [...current, ...nextFiles]);
@@ -439,10 +441,10 @@ export function PrintPage({
         <aside className="flex w-full shrink-0 flex-col border-t bg-card/95 shadow-[0_-12px_40px_rgba(15,23,42,0.04)] backdrop-blur lg:h-full lg:w-[390px] lg:border-l lg:border-t-0">
           <div className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-6 border-b bg-card/95 px-4 backdrop-blur lg:h-16 lg:px-6">
             <TabButton active={activeTab === "settings"} onClick={() => setActiveTab("settings")}>
-              打印设置
+              {t("print.settingsTab")}
             </TabButton>
             <TabButton active={activeTab === "tasks"} onClick={() => setActiveTab("tasks")}>
-              任务队列
+              {t("print.taskQueueTab")}
               {recentJobs.length ? (
                 <span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1.5 text-[11px] text-muted-foreground">
                   {recentJobs.length}
@@ -456,12 +458,12 @@ export function PrintPage({
               <div className="flex-1 space-y-5 px-4 py-4 lg:overflow-y-auto lg:px-6 lg:py-5">
                 {selectedPrinter && capabilityLoading ? (
                   <div className="rounded-2xl border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-                    正在读取当前打印机能力...
+                    {t("print.capabilityLoading")}
                   </div>
                 ) : null}
                 {selectedPrinter && capabilityError ? (
                   <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                    无法读取当前打印机能力：{capabilityError}
+                    {t("print.capabilityReadFailed")}：{capabilityError}
                   </div>
                 ) : null}
 
@@ -489,7 +491,7 @@ export function PrintPage({
                   ) : null}
                   {capabilityOptions.color.length ? (
                     <div className="space-y-2">
-                      <div className="text-sm font-medium">颜色模式</div>
+                      <div className="text-sm font-medium">{t("print.colorMode")}</div>
                       <Segmented
                         value={colorMode}
                         options={capabilityOptions.color}
@@ -499,7 +501,7 @@ export function PrintPage({
                   ) : null}
                   {capabilityOptions.sides.length ? (
                     <LabeledSelect
-                      label="单双面"
+                      label={t("print.duplex")}
                       value={duplexMode}
                       onChange={(value) => {
                         setDuplexMode(value as DuplexMode);
@@ -517,7 +519,7 @@ export function PrintPage({
                     className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
                   >
                     <div className="min-w-0">
-                      <div className="text-sm font-medium">更多高级选项</div>
+                      <div className="text-sm font-medium">{t("print.advancedOptions")}</div>
                       <div className="mt-1 truncate text-xs text-muted-foreground">{advancedSummary}</div>
                     </div>
                     <ChevronDownIcon className={`size-4 shrink-0 transition-transform ${advancedOpen ? "rotate-180" : ""}`} />
@@ -527,7 +529,7 @@ export function PrintPage({
                     <div className="space-y-4 border-t px-4 py-4">
                       {capabilityOptions.media.length ? (
                         <LabeledSelect
-                          label="纸张大小"
+                          label={t("print.paperSize")}
                           value={paperSize}
                           onChange={(value) => {
                             setPaperSize(value);
@@ -537,11 +539,11 @@ export function PrintPage({
                         />
                       ) : null}
                       {capabilityOptions.mediaType.length ? (
-                        <LabeledSelect label="纸张类型" value={paperType} onChange={setPaperType} options={capabilityOptions.mediaType} />
+                        <LabeledSelect label={t("print.paperType")} value={paperType} onChange={setPaperType} options={capabilityOptions.mediaType} />
                       ) : null}
                       {capabilityOptions.orientation.length ? (
                         <div className="space-y-2">
-                          <div className="text-xs font-medium text-muted-foreground">页面方向</div>
+                          <div className="text-xs font-medium text-muted-foreground">{t("print.orientation")}</div>
                           <Segmented
                             value={orientation}
                             options={capabilityOptions.orientation}
@@ -551,7 +553,7 @@ export function PrintPage({
                       ) : null}
                       {capabilityOptions.scaling.length ? (
                         <LabeledSelect
-                          label="缩放模式"
+                          label={t("print.scalingMode")}
                           value={scaleMode}
                           onChange={(value) => setScaleMode(value as ScalingMode)}
                           options={capabilityOptions.scaling}
@@ -559,11 +561,11 @@ export function PrintPage({
                       ) : null}
                       {supportsPageRanges ? (
                         <div className="space-y-2">
-                          <div className="text-xs font-medium text-muted-foreground">页码范围</div>
+                          <div className="text-xs font-medium text-muted-foreground">{t("print.pageRange")}</div>
                           <input
                             value={pageRange}
                             onChange={(event) => setPageRange(event.target.value)}
-                            placeholder="例如 1-5 8"
+                            placeholder={t("print.pageRangePlaceholder")}
                             className="h-10 w-full rounded-xl border bg-card px-3 text-sm outline-none transition-colors focus:border-ring focus:ring-3 focus:ring-ring/20"
                           />
                         </div>
@@ -582,10 +584,10 @@ export function PrintPage({
                   {batchPrinting || writes.createLoading || writes.directLoading ? (
                     <span className="inline-flex items-center gap-2">
                       <Loader2Icon className="size-4 animate-spin" />
-                      正在提交打印机...
+                      {t("print.submitting")}
                     </span>
                   ) : (
-                    `打印 ${printableFiles.length ? `${printableFiles.length} 个文件` : ""}`
+                    t("print.printButton", { count: printableFiles.length })
                   )}
                 </Button>
               </div>
@@ -613,6 +615,8 @@ export function UploadDropzone({
   onDropFiles: (files: File[]) => void;
   onSelectKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
 }) {
+  const { t } = useI18n();
+
   return (
     <label
       htmlFor={fileInputId}
@@ -631,12 +635,12 @@ export function UploadDropzone({
       <div className="flex size-16 items-center justify-center rounded-3xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
         <UploadIcon className="size-7" />
       </div>
-      <div className="mt-5 text-base font-medium">选择或拖拽文件到此处</div>
+      <div className="mt-5 text-base font-medium">{t("print.uploadTitle")}</div>
       <div className="mt-2 max-w-[360px] text-sm leading-6 text-muted-foreground">
-        支持批量选择 PDF 和图片文件。图片会由后端转换为 PDF，再进入真实打印链路。
+        {t("print.uploadDescription")}
       </div>
       <div className="mt-5 rounded-full border bg-background px-4 py-2 text-sm text-foreground shadow-sm">
-        选择本地文件
+        {t("print.chooseLocalFile")}
       </div>
     </label>
   );
@@ -659,11 +663,13 @@ export function FileStrip({
   onRemove: (fileId: string) => void;
   onSelect: (fileId: string) => void;
 }) {
+  const { t } = useI18n();
+
   return (
     <div className="shrink-0 space-y-2">
       <div className="flex items-center justify-between gap-3 px-1">
         <div className="text-xs font-medium text-muted-foreground">
-          待打印文件 · {files.length}
+          {t("print.fileStripTitle", { count: files.length })}
         </div>
         {files.length ? (
           <button
@@ -671,7 +677,7 @@ export function FileStrip({
             onClick={onClearAll}
             className="text-xs text-muted-foreground transition-colors hover:text-destructive"
           >
-            清空
+            {t("print.clearFiles")}
           </button>
         ) : null}
       </div>
@@ -684,7 +690,7 @@ export function FileStrip({
           className="flex h-16 w-16 shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border border-dashed bg-card/60 text-muted-foreground transition-colors hover:bg-card hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 sm:h-24 sm:w-24"
         >
           <PlusIcon className="size-5" />
-          <span className="hidden text-[11px] font-medium sm:block">继续添加</span>
+          <span className="hidden text-[11px] font-medium sm:block">{t("print.addMore")}</span>
         </label>
         {files.map((file) => {
           const active = file.id === activeFileId;
@@ -725,7 +731,7 @@ export function FileStrip({
                   {file.name}
                 </div>
                 <div className="mt-0.5 hidden text-[11px] text-muted-foreground sm:block">
-                  {formatBytes(file.size)} · {file.pages} 页
+                  {formatBytes(file.size)} · {t("print.pages", { count: file.pages })}
                 </div>
               </div>
             </div>
@@ -753,6 +759,7 @@ function PreviewPanel({
   paperSize: PaperSize;
   orientation: OrientationMode;
 }) {
+  const { t } = useI18n();
   const paper = getPaperDimensionsMm(paperSize, orientation);
   const paperAspect = paper.width / paper.height;
 
@@ -763,10 +770,10 @@ function PreviewPanel({
           <div className="truncate text-sm font-medium">{file.name}</div>
           <div className="mt-1 text-xs text-muted-foreground">
             {file.type === "template"
-              ? "模板 PDF 预览"
+              ? t("print.templatePreview")
               : file.type === "pdf"
-                ? "PDF 本地文件预览"
-                : "图片本地文件预览"}
+                ? t("print.pdfFilePreview")
+                : t("print.imagePreview")}
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2 px-5 pt-5 text-xs text-muted-foreground">
@@ -808,7 +815,7 @@ function PreviewPanel({
               className="h-full w-full object-contain"
             />
             <div className="pointer-events-none absolute left-3 top-3 rounded-full border bg-white/90 px-2 py-1 text-[10px] font-medium text-neutral-500 shadow-sm">
-              {formatPaperLabel(paperSize)} · {orientation === "landscape" ? "横向" : "纵向"}
+              {formatPaperLabel(paperSize)} · {formatKeywordLabel(orientation)}
             </div>
           </div>
         </div>
@@ -817,15 +824,15 @@ function PreviewPanel({
           <div className="mx-auto flex aspect-[0.78] max-h-[520px] min-h-[420px] w-full max-w-[420px] flex-col rounded-[24px] border bg-background px-6 py-6 shadow-[0_20px_60px_rgba(0,0,0,0.12)]">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               {file.type === "image" ? <FileImageIcon className="size-4" /> : <FileTextIcon className="size-4" />}
-              {previewLoading ? "正在生成预览..." : file.name}
+              {previewLoading ? t("pdfPreview.loading") : file.name}
             </div>
             <div className="mt-6 rounded-2xl border bg-card px-4 py-4 text-sm text-muted-foreground">
-              当前文件暂无可显示预览。
+              {t("print.noPreview")}
             </div>
             <div className="mt-auto rounded-2xl border bg-card px-4 py-4">
               <div className="text-sm font-medium">{file.name}</div>
               <div className="mt-1 text-xs text-muted-foreground">
-                {file.type === "image" ? "图片文件" : `${file.pages} 页 PDF`}
+                {file.type === "image" ? t("print.imageFile") : `${t("print.pages", { count: file.pages })} PDF`}
               </div>
             </div>
           </div>
@@ -846,6 +853,7 @@ function TaskQueuePanel({
   loading: boolean;
   onOpenHistory: () => void;
 }) {
+  const { t } = useI18n();
   const displayJobs = currentJob
     ? [currentJob, ...jobs.filter((job) => job.job_id !== currentJob.job_id)].slice(0, 5)
     : jobs.slice(0, 5);
@@ -854,9 +862,9 @@ function TaskQueuePanel({
     <div className="min-h-[42dvh] flex-1 space-y-3 bg-muted/20 p-4 lg:min-h-0 lg:overflow-y-auto lg:p-5">
       <div className="flex items-center justify-between px-1">
         <div>
-          <div className="text-sm font-medium">最近任务</div>
+          <div className="text-sm font-medium">{t("print.recentJobs")}</div>
           <div className="mt-1 text-xs text-muted-foreground">
-            {loading ? "正在刷新..." : "最近 5 条真实打印任务"}
+            {loading ? t("print.refreshingJobs") : t("print.recentJobsCaption")}
           </div>
         </div>
         <button
@@ -864,7 +872,7 @@ function TaskQueuePanel({
           className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
           onClick={onOpenHistory}
         >
-          查看全部
+          {t("print.viewAll")}
           <ArrowRightIcon className="size-3" />
         </button>
       </div>
@@ -872,9 +880,9 @@ function TaskQueuePanel({
       {displayJobs.length === 0 ? (
         <div className="flex min-h-[260px] flex-col items-center justify-center rounded-3xl border bg-card px-6 py-10 text-center text-sm text-muted-foreground">
           <PrinterIcon className="mb-3 size-10 opacity-25" />
-          <div className="font-medium text-foreground">暂无打印任务</div>
+          <div className="font-medium text-foreground">{t("history.emptyTitle")}</div>
           <div className="mt-1 text-xs">
-            暂无最近打印任务
+            {t("print.noRecentJobs")}
           </div>
         </div>
       ) : (
@@ -940,10 +948,12 @@ function PrinterPicker({
   selectedPrinter: PrinterInfo | null;
   value: string;
 }) {
+  const { t } = useI18n();
+
   return (
     <div className="space-y-3">
       <div className="space-y-2">
-        <div className="text-sm font-medium">目标打印机</div>
+        <div className="text-sm font-medium">{t("print.targetPrinter")}</div>
         <NativeSelect
           value={value}
           onChange={onChange}
@@ -951,7 +961,7 @@ function PrinterPicker({
           options={
             printers.length
               ? printers.map((printerItem) => ({ value: printerItem.id, label: printerItem.name }))
-              : [{ value: "", label: "请先导入或添加打印机" }]
+              : [{ value: "", label: t("print.selectPrinterFirst") }]
           }
         />
       </div>
@@ -967,22 +977,22 @@ function PrinterPicker({
             </Badge>
           </div>
           <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
-            <span>{selectedPrinter.is_default ? "默认打印机" : "非默认"}</span>
-            <span>{selectedPrinter.enabled ? "已启用" : "已停用"}</span>
-            <span>最近校验：{formatUnixSec(selectedPrinter.last_validated_at)}</span>
+            <span>{selectedPrinter.is_default ? t("print.defaultPrinter") : t("print.nonDefaultPrinter")}</span>
+            <span>{selectedPrinter.enabled ? t("print.enabled") : t("printer.state.disabled")}</span>
+            <span>{t("print.lastValidated", { value: formatUnixSec(selectedPrinter.last_validated_at) })}</span>
           </div>
         </div>
       ) : (
         <div className="rounded-2xl border bg-background/70 px-4 py-5 text-center text-sm text-muted-foreground">
-          还没有可用打印机，请先在打印机中添加。
+          {t("print.noPrinter")}
         </div>
       )}
       <div className="grid grid-cols-2 gap-2">
         <Button type="button" variant="outline" disabled={refreshing} onClick={onRefresh}>
-          {refreshing ? "刷新中..." : "刷新"}
+          {refreshing ? t("print.refreshing") : t("common.refresh")}
         </Button>
         <Button type="button" variant="outline" onClick={onManage}>
-          管理打印机
+          {t("print.managePrinters")}
         </Button>
       </div>
     </div>
@@ -1024,6 +1034,7 @@ function CopiesControl({
   onChange: (value: string) => void;
   value: string;
 }) {
+  const { t } = useI18n();
   const current = Number.parseInt(value, 10);
   const normalized = Number.isFinite(current) ? Math.min(max, Math.max(min, current)) : min;
   const step = (delta: number) => {
@@ -1033,9 +1044,9 @@ function CopiesControl({
   return (
     <div className="flex items-center justify-between gap-4">
       <div>
-        <div className="text-sm font-medium">打印份数</div>
+        <div className="text-sm font-medium">{t("print.copies")}</div>
         <div className="mt-1 text-xs text-muted-foreground">
-          {min}-{max} 份
+          {t("print.copiesRange", { min, max })}
         </div>
       </div>
       <div className="flex h-10 w-32 items-center overflow-hidden rounded-xl border bg-background">
@@ -1161,35 +1172,6 @@ const baseMediaLabels: Record<string, string> = {
   iso_c5_162x229mm: "C5 Envelope (162x229mm)",
 };
 
-const keywordLabels: Record<string, string> = {
-  all: "全部",
-  auto: "自动",
-  "auto-fit": "自动适应",
-  color: "彩色",
-  even: "偶数",
-  fill: "填充纸张",
-  fit: "适应纸张",
-  landscape: "横向",
-  monochrome: "黑白",
-  none: "无缩放",
-  odd: "奇数",
-  "one-sided": "单面",
-  portrait: "纵向",
-  stationery: "普通纸",
-  "thick-paper": "厚纸",
-  "thick-paper-2": "厚纸 2",
-  envelope: "信封",
-  "label-paper": "标签纸",
-  "stationery-letterhead": "信头纸",
-  "coating-paper-2": "涂布纸 2",
-  "coating-paper-3": "涂布纸 3",
-  prepunched: "预打孔纸",
-  "colored-paper": "彩色纸",
-  "special-paper": "特殊纸",
-  "two-sided-long-edge": "双面长边翻页",
-  "two-sided-short-edge": "双面短边翻页",
-};
-
 function buildCapabilityOptions(capabilities: PrinterCapabilities | null): {
   color: SelectOption[];
   media: SelectOption[];
@@ -1232,7 +1214,7 @@ function toKeywordOptions(
       label: formatKeywordLabel(value),
     }));
   if (options.includePrinterDefault) {
-    return [{ value: PRINTER_DEFAULT_VALUE, label: "使用打印机默认" }, ...output];
+    return [{ value: PRINTER_DEFAULT_VALUE, label: translate(getCurrentLocale(), "print.printerDefault") }, ...output];
   }
   return output;
 }
@@ -1349,8 +1331,10 @@ function formatMediaLabel(value: string) {
 }
 
 function formatKeywordLabel(value: string) {
-  if (value === PRINTER_DEFAULT_VALUE) return "使用打印机默认";
-  return keywordLabels[value] ?? value.replace(/[-_]/g, " ");
+  if (value === PRINTER_DEFAULT_VALUE) return translate(getCurrentLocale(), "print.printerDefault");
+  const key = `keyword.${value}`;
+  const label = translate(getCurrentLocale(), key);
+  return label === key ? value.replace(/[-_]/g, " ") : label;
 }
 
 function formatDimension(value: number) {
@@ -1425,7 +1409,7 @@ function isPrintableFile(file: UploadedPrintFile, templateContent: string) {
 function buildTemplateUploadedFile(templateContent: string, dataJson: string): UploadedPrintFile {
   return {
     id: "current-template",
-    name: "当前模板.pdf",
+    name: translate(getCurrentLocale(), "print.templatePdfName"),
     size: 148_000 + templateContent.length + dataJson.length,
     type: "template",
     pages: 1,
@@ -1436,8 +1420,8 @@ function buildTemplateUploadedFile(templateContent: string, dataJson: string): U
 
 function summarizeJob(job: JobResponse) {
   if (job.source_file_name) return job.source_file_name;
-  if (job.job_kind === "template") return "模板打印任务";
-  return job.job_kind || "打印任务";
+  if (job.job_kind === "template") return translate(getCurrentLocale(), "print.templatePrintJob");
+  return job.job_kind || translate(getCurrentLocale(), "print.printJob");
 }
 
 function isProcessingStatus(status: string) {

@@ -55,11 +55,14 @@ import {
 import { createApiKey, revokeApiKey } from "@/features/auth/api"
 import { authQueryKeys, createApiKeysQueryOptions } from "@/features/auth/queries"
 import type { ApiKeyRecord, ApiKeyScope, ApiKeyStatus } from "@/features/auth/types"
+import { useI18n } from "@/i18n"
 import { cn } from "@/lib/utils"
 
 type ApiKeysPageProps = {
   baseUrl: string
 }
+
+type TFunction = ReturnType<typeof useI18n>["t"]
 
 type ScopeOption = {
   value: ApiKeyScope
@@ -68,34 +71,6 @@ type ScopeOption = {
 }
 
 type StatusFilter = ApiKeyStatus | "all"
-
-const scopeOptions: ScopeOption[] = [
-  {
-    value: "template:read",
-    label: "读取模板",
-    description: "允许获取打印模板列表和详情。",
-  },
-  {
-    value: "preview:create",
-    label: "创建预览",
-    description: "允许提交数据并生成文档预览。",
-  },
-  {
-    value: "print:create",
-    label: "创建打印任务",
-    description: "允许提交真实的物理打印请求。",
-  },
-  {
-    value: "printer:read",
-    label: "读取打印机",
-    description: "允许读取可用打印机和打印能力。",
-  },
-  {
-    value: "job:read",
-    label: "读取任务状态",
-    description: "允许查询和轮询打印任务进度。",
-  },
-]
 
 const defaultScopes: ApiKeyScope[] = [
   "template:read",
@@ -106,6 +81,7 @@ const defaultScopes: ApiKeyScope[] = [
 ]
 
 export function ApiKeysPage({ baseUrl }: ApiKeysPageProps) {
+  const { t } = useI18n()
   const queryClient = useQueryClient()
   const [createOpen, setCreateOpen] = useState(false)
   const [docsOpen, setDocsOpen] = useState(false)
@@ -121,6 +97,7 @@ export function ApiKeysPage({ baseUrl }: ApiKeysPageProps) {
     [baseUrl]
   )
   const apiKeysQuery = useQuery(apiKeysQueryOptions)
+  const scopeOptions = useMemo(() => getScopeOptions(t), [t])
 
   const createMutation = useMutation({
     mutationFn: () => createApiKey(baseUrl, { name, scopes }),
@@ -153,15 +130,15 @@ export function ApiKeysPage({ baseUrl }: ApiKeysPageProps) {
         apiKey.name,
         apiKey.key_prefix,
         apiKey.status,
-        statusLabel(apiKey.status),
-        ...apiKey.scopes.map(scopeLabel),
+        statusLabel(apiKey.status, t),
+        ...apiKey.scopes.map((scope) => scopeLabel(scope, t)),
         ...apiKey.scopes,
       ]
         .join(" ")
         .toLowerCase()
         .includes(keyword)
     })
-  }, [apiKeys, search, statusFilter])
+  }, [apiKeys, search, statusFilter, t])
 
   const activeCount = apiKeys.filter((item) => item.status === "active").length
   const revokedCount = apiKeys.filter((item) => item.status === "revoked").length
@@ -190,10 +167,10 @@ export function ApiKeysPage({ baseUrl }: ApiKeysPageProps) {
         <header className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
           <div className="min-w-0">
             <h1 className="font-heading text-2xl font-semibold tracking-tight">
-              API Key 管理
+              {t("apiKeys.title")}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              管理外部系统调用开放 API 的身份凭证和权限范围。
+              {t("apiKeys.description")}
             </p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -210,7 +187,7 @@ export function ApiKeysPage({ baseUrl }: ApiKeysPageProps) {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 className="pl-8"
-                placeholder="搜索名称、Prefix 或权限..."
+                placeholder={t("apiKeys.searchPlaceholder")}
               />
             </div>
             <Button
@@ -219,20 +196,20 @@ export function ApiKeysPage({ baseUrl }: ApiKeysPageProps) {
               onClick={() => setDocsOpen(true)}
             >
               <BookOpenIcon data-icon="inline-start" />
-              接口文档
+              {t("apiKeys.docs")}
             </Button>
             <Button
               type="button"
               variant="outline"
               size="icon"
-              title="刷新列表"
+              title={t("apiKeys.refreshList")}
               onClick={() => void apiKeysQuery.refetch()}
               disabled={apiKeysQuery.isFetching}
             >
               <RefreshCwIcon
                 className={apiKeysQuery.isFetching ? "animate-spin" : undefined}
               />
-              <span className="sr-only">刷新列表</span>
+              <span className="sr-only">{t("apiKeys.refreshList")}</span>
             </Button>
             <Button
               type="button"
@@ -244,7 +221,7 @@ export function ApiKeysPage({ baseUrl }: ApiKeysPageProps) {
               }}
             >
               <PlusIcon data-icon="inline-start" />
-              新建 Key
+              {t("apiKeys.newKey")}
             </Button>
           </div>
         </header>
@@ -253,7 +230,7 @@ export function ApiKeysPage({ baseUrl }: ApiKeysPageProps) {
           <ErrorNotice>
             {apiKeysQuery.error instanceof Error
               ? apiKeysQuery.error.message
-              : "加载 API Key 失败"}
+              : t("apiKeys.loadFailed")}
           </ErrorNotice>
         ) : null}
         {revokeError ? <ErrorNotice>{revokeError}</ErrorNotice> : null}
@@ -263,12 +240,12 @@ export function ApiKeysPage({ baseUrl }: ApiKeysPageProps) {
             <Table>
               <TableHeader className="bg-muted/40">
                 <TableRow>
-                  <TableHead className="pl-6">凭证名称</TableHead>
-                  <TableHead className="w-52">安全前缀</TableHead>
-                  <TableHead className="w-64">权限作用域</TableHead>
-                  <TableHead className="w-28">状态</TableHead>
-                  <TableHead className="w-44">最近调用</TableHead>
-                  <TableHead className="w-24 pr-6 text-right">操作</TableHead>
+                  <TableHead className="pl-6">{t("apiKeys.tableCredential")}</TableHead>
+                  <TableHead className="w-52">{t("apiKeys.tablePrefix")}</TableHead>
+                  <TableHead className="w-64">{t("apiKeys.tableScopes")}</TableHead>
+                  <TableHead className="w-28">{t("apiKeys.tableStatus")}</TableHead>
+                  <TableHead className="w-44">{t("apiKeys.tableLastUsed")}</TableHead>
+                  <TableHead className="w-24 pr-6 text-right">{t("apiKeys.tableActions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -321,13 +298,16 @@ export function ApiKeysPage({ baseUrl }: ApiKeysPageProps) {
 
           <div className="flex items-center justify-between border-t bg-muted/20 px-4 py-3 text-xs text-muted-foreground sm:px-6">
             <span>
-              共 {filteredKeys.length} 个凭证
+              {t("apiKeys.footerCount", { count: filteredKeys.length })}
               {search.trim() || statusFilter !== "all"
-                ? `，来自 ${apiKeys.length} 条记录`
+                ? t("apiKeys.footerCountFiltered", { total: apiKeys.length })
                 : ""}
             </span>
             <span>
-              {activeCount} 个启用中，{revokedCount} 个已撤销
+              {t("apiKeys.footerSummary", {
+                active: activeCount,
+                revoked: revokedCount,
+              })}
             </span>
           </div>
         </section>
@@ -346,12 +326,12 @@ export function ApiKeysPage({ baseUrl }: ApiKeysPageProps) {
         <SheetContent className="w-full max-w-none data-[side=right]:w-full data-[side=right]:sm:max-w-md">
           <SheetHeader className="border-b px-6 py-5">
             <SheetTitle>
-              {createdToken ? "API Key 创建成功" : "新建 API Key"}
+              {createdToken ? t("apiKeys.createSuccessTitle") : t("apiKeys.createTitle")}
             </SheetTitle>
             <SheetDescription>
               {createdToken
-                ? "请立即复制并妥善保管您的凭证。"
-                : "按需分配权限，遵循最小权限原则。"}
+                ? t("apiKeys.createSuccessDescription")
+                : t("apiKeys.createDescription")}
             </SheetDescription>
           </SheetHeader>
 
@@ -367,19 +347,19 @@ export function ApiKeysPage({ baseUrl }: ApiKeysPageProps) {
               <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-6 py-5">
                 <LabeledInput
                   id="api-key-name"
-                  label="凭证名称"
+                  label={t("apiKeys.name")}
                   required
                   value={name}
                   disabled={createMutation.isPending}
-                  placeholder="例如：ERP 系统集成节点"
+                  placeholder={t("apiKeys.namePlaceholder")}
                   onChange={setName}
                 />
 
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-3">
-                    <Label>权限作用域</Label>
+                    <Label>{t("apiKeys.scopes")}</Label>
                     <span className="text-xs text-muted-foreground">
-                      已选 {scopes.length} 项
+                      {t("apiKeys.selectedScopes", { count: scopes.length })}
                     </span>
                   </div>
                   <div className="space-y-2">
@@ -410,7 +390,7 @@ export function ApiKeysPage({ baseUrl }: ApiKeysPageProps) {
                   disabled={createMutation.isPending}
                   onClick={closeCreateSheet}
                 >
-                  取消
+                  {t("common.cancel")}
                 </Button>
                 <Button
                   type="button"
@@ -422,7 +402,7 @@ export function ApiKeysPage({ baseUrl }: ApiKeysPageProps) {
                   ) : (
                     <PlusIcon data-icon="inline-start" />
                   )}
-                  生成凭证
+                  {t("apiKeys.generate")}
                 </Button>
               </SheetFooter>
             </>
@@ -439,6 +419,36 @@ export function ApiKeysPage({ baseUrl }: ApiKeysPageProps) {
   )
 }
 
+function getScopeOptions(t: TFunction): ScopeOption[] {
+  return [
+    {
+      value: "template:read",
+      label: t("apiKeys.scope.templateRead"),
+      description: t("apiKeys.scope.templateReadDescription"),
+    },
+    {
+      value: "preview:create",
+      label: t("apiKeys.scope.previewCreate"),
+      description: t("apiKeys.scope.previewCreateDescription"),
+    },
+    {
+      value: "print:create",
+      label: t("apiKeys.scope.printCreate"),
+      description: t("apiKeys.scope.printCreateDescription"),
+    },
+    {
+      value: "printer:read",
+      label: t("apiKeys.scope.printerRead"),
+      description: t("apiKeys.scope.printerReadDescription"),
+    },
+    {
+      value: "job:read",
+      label: t("apiKeys.scope.jobRead"),
+      description: t("apiKeys.scope.jobReadDescription"),
+    },
+  ]
+}
+
 function StatusFilterSelect({
   activeCount,
   onChange,
@@ -452,10 +462,11 @@ function StatusFilterSelect({
   totalCount: number
   value: StatusFilter
 }) {
+  const { t } = useI18n()
   const options: { value: StatusFilter; label: string; count: number }[] = [
-    { value: "active", label: "启用中", count: activeCount },
-    { value: "all", label: "全部", count: totalCount },
-    { value: "revoked", label: "已撤销", count: revokedCount },
+    { value: "active", label: t("apiKeys.status.active"), count: activeCount },
+    { value: "all", label: t("common.all"), count: totalCount },
+    { value: "revoked", label: t("apiKeys.status.revoked"), count: revokedCount },
   ]
   const selectedOption =
     options.find((option) => option.value === value) ?? options[0]
@@ -1460,6 +1471,7 @@ function ApiKeyTableRow({
   onRevoke: () => void
   revokePending: boolean
 }) {
+  const { t } = useI18n()
   return (
     <TableRow className="group align-top">
       <TableCell className="pl-6">
@@ -1479,7 +1491,7 @@ function ApiKeyTableRow({
           formatDateTime(apiKey.last_used_at)
         ) : (
           <span className="font-sans italic text-muted-foreground/80">
-            从未调用
+            {t("apiKeys.neverUsed")}
           </span>
         )}
       </TableCell>
@@ -1505,6 +1517,7 @@ function ApiKeyMobileCard({
   onRevoke: () => void
   revokePending: boolean
 }) {
+  const { t } = useI18n()
   return (
     <article className="space-y-4 px-4 py-4">
       <div className="flex items-start justify-between gap-3">
@@ -1512,15 +1525,17 @@ function ApiKeyMobileCard({
         <StatusIndicator status={apiKey.status} />
       </div>
       <div className="space-y-3 rounded-lg bg-muted/30 p-3">
-        <InfoLine label="安全前缀">
+        <InfoLine label={t("apiKeys.tablePrefix")}>
           <MaskedPrefix prefix={apiKey.key_prefix} />
         </InfoLine>
-        <InfoLine label="权限作用域">
+        <InfoLine label={t("apiKeys.tableScopes")}>
           <ScopeBadges scopes={apiKey.scopes} />
         </InfoLine>
-        <InfoLine label="最近调用">
+        <InfoLine label={t("apiKeys.tableLastUsed")}>
           <span className="font-mono text-xs text-muted-foreground">
-            {apiKey.last_used_at ? formatDateTime(apiKey.last_used_at) : "从未调用"}
+            {apiKey.last_used_at
+              ? formatDateTime(apiKey.last_used_at)
+              : t("apiKeys.neverUsed")}
           </span>
         </InfoLine>
       </div>
@@ -1535,6 +1550,7 @@ function ApiKeyMobileCard({
 }
 
 function ApiKeyIdentity({ apiKey }: { apiKey: ApiKeyRecord }) {
+  const { t } = useI18n()
   const active = apiKey.status === "active"
   return (
     <div className="flex min-w-0 items-center gap-3">
@@ -1553,7 +1569,7 @@ function ApiKeyIdentity({ apiKey }: { apiKey: ApiKeyRecord }) {
           {apiKey.name}
         </div>
         <div className="mt-0.5 text-xs text-muted-foreground">
-          创建于 {formatDateOnly(apiKey.created_at)}
+          {t("apiKeys.createdAt", { date: formatDateOnly(apiKey.created_at) })}
         </div>
       </div>
     </div>
@@ -1578,6 +1594,7 @@ function ScopeBadges({
   compact?: boolean
   scopes: string[]
 }) {
+  const { t } = useI18n()
   const visibleScopes = compact ? scopes.slice(0, 2) : scopes
   const hiddenScopes = compact ? scopes.slice(visibleScopes.length) : []
 
@@ -1585,7 +1602,7 @@ function ScopeBadges({
     <div className="flex flex-wrap items-center gap-1.5">
       {visibleScopes.map((scope) => (
         <Badge key={scope} variant="outline" className="bg-muted/60">
-          {scopeLabel(scope)}
+          {scopeLabel(scope, t)}
         </Badge>
       ))}
       {hiddenScopes.length ? (
@@ -1599,13 +1616,13 @@ function ScopeBadges({
           </TooltipTrigger>
           <TooltipContent side="top" align="center" className="block max-w-72 px-3 py-2">
             <div className="mb-1 border-b border-background/20 pb-1 font-medium text-background/80">
-              全部权限作用域
+              {t("apiKeys.allScopes")}
             </div>
             <div className="space-y-1">
               {scopes.map((scope) => (
                 <div key={scope} className="flex items-center gap-1.5 whitespace-nowrap">
                   <KeyRoundIcon className="size-3 text-background/70" />
-                  <span>{scopeLabel(scope)}</span>
+                  <span>{scopeLabel(scope, t)}</span>
                   <span className="font-mono text-[11px] text-background/60">
                     {scope}
                   </span>
@@ -1620,6 +1637,7 @@ function ScopeBadges({
 }
 
 function StatusIndicator({ status }: { status: string }) {
+  const { t } = useI18n()
   const active = status === "active"
   return (
     <div className="flex items-center gap-1.5 text-sm">
@@ -1630,7 +1648,7 @@ function StatusIndicator({ status }: { status: string }) {
         )}
       />
       <span className={active ? "text-foreground" : "text-muted-foreground"}>
-        {statusLabel(status)}
+        {statusLabel(status, t)}
       </span>
     </div>
   )
@@ -1647,13 +1665,15 @@ function RevokeButton({
   onClick: () => void
   pending: boolean
 }) {
+  const { t } = useI18n()
+  const label = t("apiKeys.revoke")
   return (
     <Button
       type="button"
       variant="ghost"
       size={mobile ? "sm" : "icon-sm"}
       disabled={disabled || pending}
-      title={disabled ? "该凭证已撤销" : "撤销凭证"}
+      title={disabled ? t("apiKeys.revokedTitle") : label}
       className={cn(
         "text-muted-foreground hover:bg-destructive/10 hover:text-destructive",
         mobile && "w-full"
@@ -1668,7 +1688,7 @@ function RevokeButton({
       ) : (
         <ShieldOffIcon data-icon={mobile ? "inline-start" : undefined} />
       )}
-      {mobile ? "撤销凭证" : <span className="sr-only">撤销凭证</span>}
+      {mobile ? label : <span className="sr-only">{label}</span>}
     </Button>
   )
 }
@@ -1730,6 +1750,7 @@ function ApiKeyCreatedState({
   onCopy: () => void
   token: string
 }) {
+  const { t } = useI18n()
   return (
     <>
       <div className="flex flex-1 flex-col overflow-y-auto px-6 py-8">
@@ -1738,10 +1759,10 @@ function ApiKeyCreatedState({
             <CheckCircle2Icon className="size-8" />
           </div>
           <h3 className="font-heading text-xl font-semibold tracking-tight">
-            API Key 已生成
+            {t("apiKeys.createdTokenTitle")}
           </h3>
           <p className="mt-2 max-w-xs text-sm leading-6 text-muted-foreground">
-            出于安全考虑，完整凭证仅在此刻显示一次。离开此页面后将无法再次查看。
+            {t("apiKeys.createdTokenDescription")}
           </p>
 
           <div className="mt-8 w-full rounded-xl bg-slate-950 p-4 text-left shadow-sm">
@@ -1764,20 +1785,20 @@ function ApiKeyCreatedState({
             ) : (
               <ClipboardIcon data-icon="inline-start" />
             )}
-            {copied ? "已复制到剪贴板" : "复制完整 Token"}
+            {copied ? t("apiKeys.copied") : t("apiKeys.copyToken")}
           </Button>
 
           <div className="mt-6 flex items-start gap-2 rounded-lg border border-amber-100 bg-amber-50/70 p-3 text-left text-xs leading-5 text-amber-800">
             <AlertTriangleIcon className="mt-0.5 size-4 shrink-0 text-amber-500" />
             <p>
-              请将 Token 保存在安全的环境变量或密钥管理服务中，切勿硬编码在前端代码或公开仓库里。
+              {t("apiKeys.tokenWarning")}
             </p>
           </div>
         </div>
       </div>
       <SheetFooter className="border-t bg-muted/20 px-6 py-4">
         <Button type="button" className="w-full" onClick={onClose}>
-          我已妥善保存，关闭窗口
+          {t("apiKeys.closeAfterSaved")}
         </Button>
       </SheetFooter>
     </>
@@ -1800,12 +1821,13 @@ function InfoLine({
 }
 
 function LoadingRow() {
+  const { t } = useI18n()
   return (
     <TableRow>
       <TableCell colSpan={6}>
         <div className="flex items-center gap-2 py-10 text-sm text-muted-foreground">
           <Loader2Icon className="size-4 animate-spin" />
-          正在加载 API Key
+          {t("apiKeys.loading")}
         </div>
       </TableCell>
     </TableRow>
@@ -1835,18 +1857,21 @@ function EmptyState({
   search: string
   statusFilter: StatusFilter
 }) {
+  const { t } = useI18n()
   const searching = search.trim().length > 0
   const filteredByStatus = statusFilter !== "all"
   const title = searching
-    ? "没有找到符合条件的 API Key"
+    ? t("apiKeys.emptyFilteredTitle")
     : filteredByStatus
-      ? `暂无${statusLabel(statusFilter)}凭证`
-      : "暂无 API Key"
+      ? t("apiKeys.emptyStatusTitle", {
+          status: statusLabel(statusFilter, t),
+        })
+      : t("apiKeys.emptyTitle")
   const description = searching
-    ? "试试更换凭证名称、Prefix、权限关键词，或切换状态筛选。"
+    ? t("apiKeys.emptyFilteredDescription")
     : filteredByStatus
-      ? "可以切换到“全部”查看历史凭证，或新建一个启用中的凭证。"
-      : "点击右上角新建凭证，开始接入开放接口。"
+      ? t("apiKeys.emptyStatusDescription")
+      : t("apiKeys.emptyDescription")
 
   return (
     <div className="flex flex-col items-center justify-center px-6 py-16 text-center text-muted-foreground">
@@ -1906,28 +1931,28 @@ function LabeledInput({
   )
 }
 
-function scopeLabel(scope: string) {
+function scopeLabel(scope: string, t: TFunction) {
   switch (scope) {
     case "template:read":
-      return "读取模板"
+      return t("apiKeys.scope.templateRead")
     case "preview:create":
-      return "创建预览"
+      return t("apiKeys.scope.previewCreate")
     case "print:create":
-      return "创建打印"
+      return t("apiKeys.scope.printCreateShort")
     case "printer:read":
-      return "读取打印机"
+      return t("apiKeys.scope.printerRead")
     case "job:read":
-      return "任务状态"
+      return t("apiKeys.scope.jobReadShort")
     case "credential:manage":
-      return "凭据管理"
+      return t("apiKeys.scope.credentialManage")
     default:
       return scope
   }
 }
 
-function statusLabel(status: string) {
-  if (status === "active") return "启用中"
-  if (status === "revoked") return "已撤销"
+function statusLabel(status: string, t: TFunction) {
+  if (status === "active") return t("apiKeys.status.active")
+  if (status === "revoked") return t("apiKeys.status.revoked")
   return status
 }
 

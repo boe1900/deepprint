@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label"
 import { changePassword } from "@/features/auth/api"
 import { authQueryKeys, createAuthMeQueryOptions } from "@/features/auth/queries"
 import { getAuthBaseUrl } from "@/features/auth/session"
+import { useI18n } from "@/i18n"
 
 export const Route = createFileRoute("/change-password")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -25,6 +26,7 @@ export const Route = createFileRoute("/change-password")({
 })
 
 function ChangePasswordPage() {
+  const { t } = useI18n()
   const search = Route.useSearch()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -77,9 +79,9 @@ function ChangePasswordPage() {
 
   const localError =
     newPassword && newPassword.length < 8
-      ? "新密码至少需要 8 个字符"
+      ? t("auth.passwordTooShort")
       : confirmPassword && newPassword !== confirmPassword
-        ? "两次输入的新密码不一致"
+        ? t("auth.passwordMismatch")
         : null
   const mutationError =
     changePasswordMutation.error instanceof Error
@@ -109,12 +111,12 @@ function ChangePasswordPage() {
               <KeyRoundIcon className="size-4" />
             </div>
             <CardTitle className="text-lg">
-              {accountMode ? "修改密码" : "修改初始密码"}
+              {accountMode ? t("auth.changePassword") : t("auth.changeInitialPassword")}
             </CardTitle>
             <CardDescription>
               {accountMode
-                ? "更新当前账号的登录密码。"
-                : "首次进入控制台前需要更新管理员密码。"}
+                ? t("auth.updateAccountPassword")
+                : t("auth.updateInitialPassword")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -127,7 +129,7 @@ function ChangePasswordPage() {
               }}
             >
               <div className="flex flex-col gap-2">
-                <Label htmlFor="current-password">当前密码</Label>
+                <Label htmlFor="current-password">{t("auth.currentPassword")}</Label>
                 <Input
                   id="current-password"
                   type="password"
@@ -139,7 +141,7 @@ function ChangePasswordPage() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <Label htmlFor="new-password">新密码</Label>
+                <Label htmlFor="new-password">{t("auth.newPassword")}</Label>
                 <Input
                   id="new-password"
                   type="password"
@@ -151,7 +153,7 @@ function ChangePasswordPage() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <Label htmlFor="confirm-password">确认新密码</Label>
+                <Label htmlFor="confirm-password">{t("auth.confirmNewPassword")}</Label>
                 <Input
                   id="confirm-password"
                   type="password"
@@ -175,7 +177,7 @@ function ChangePasswordPage() {
                     className="animate-spin"
                   />
                 ) : null}
-                更新密码
+                {t("auth.updatePassword")}
               </Button>
             </form>
           </CardContent>

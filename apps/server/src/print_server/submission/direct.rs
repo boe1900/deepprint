@@ -94,9 +94,13 @@ pub(super) async fn create_direct_job_from_input(
         .filter(|value| !value.is_empty())
         .map(ToString::to_string);
     let data_json = serde_json::to_string(&serde_json::json!({}))
-        .map_err(|_| ApiError::BadRequest("data 必须是有效 JSON".to_string()))?;
-    let print_options_json = serde_json::to_string(&payload.print_options)
-        .map_err(|_| ApiError::BadRequest("print_options 必须是有效 JSON".to_string()))?;
+        .map_err(|_| ApiError::bad_request("DATA_INVALID_JSON", "data must be valid JSON"))?;
+    let print_options_json = serde_json::to_string(&payload.print_options).map_err(|_| {
+        ApiError::bad_request(
+            "PRINT_OPTIONS_INVALID_JSON",
+            "print_options must be valid JSON",
+        )
+    })?;
 
     let insert_result = insert_direct_job_at_path(
         state.db_path.as_ref(),

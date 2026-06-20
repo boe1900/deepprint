@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getCurrentLocale, translate } from "@/i18n";
 import { getRequestErrorMessage, isAbortError } from "../api";
 import { AUTO_REFRESH_INTERVAL_MS } from "../constants";
 import {
@@ -90,7 +91,7 @@ export function useAgentReadActions({
   useEffect(() => {
     if (printersQuery.data) {
       setPrinters(printersQuery.data.printers);
-      setPrintersNote(printersQuery.data.note ?? "已加载托管打印机");
+      setPrintersNote(printersQuery.data.note ?? tr("printers.loadedManaged"));
     }
   }, [printersQuery.data, setPrinters, setPrintersNote]);
 
@@ -137,11 +138,11 @@ export function useAgentReadActions({
       });
 
       setPrinters(data.printers);
-      setPrintersNote(data.note ?? "已加载托管打印机");
+      setPrintersNote(data.note ?? tr("printers.loadedManaged"));
     } catch (error) {
       if (isAbortError(error)) return;
 
-      const message = getRequestErrorMessage(error, "打印机刷新失败");
+      const message = getRequestErrorMessage(error, tr("printers.refreshFailed"));
       setNotice({ kind: "error", message });
     } finally {
       setLoadingPrinters(false);
@@ -181,16 +182,16 @@ export function useAgentReadActions({
         setHealth(healthData);
         setDeepHealth(deepData);
         setPrinters(printersData.printers);
-        setPrintersNote(printersData.note ?? "已加载托管打印机");
+        setPrintersNote(printersData.note ?? tr("printers.loadedManaged"));
         setLastRefreshAt(new Date());
 
         if (!silent) {
-          setNotice({ kind: "ok", message: "刷新完成" });
+          setNotice({ kind: "ok", message: tr("common.refreshComplete") });
         }
       } catch (error) {
         if (isAbortError(error)) return;
 
-        const message = getRequestErrorMessage(error, "刷新失败，请检查 Agent 是否启动");
+        const message = getRequestErrorMessage(error, tr("printers.refreshServiceFailed"));
         setNotice({ kind: "error", message });
       } finally {
         setLoadingHealth(false);
@@ -220,4 +221,8 @@ export function useAgentReadActions({
     loadPrinters,
     refreshAll,
   };
+}
+
+function tr(key: string, params?: Record<string, string | number | null | undefined>) {
+  return translate(getCurrentLocale(), key, params);
 }

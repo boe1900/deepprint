@@ -17,7 +17,7 @@ pub(crate) async fn discover_cups_printers(
     mark_storage_managed_discovered_printers(state.db_path.as_ref(), &mut printers)
         .map_err(map_print_backend_error)?;
     let message = if printers.is_empty() {
-        Some("已连接到 CUPS，但没有发现可共享导入的打印机。请检查 CUPS 是否开启共享以及打印机是否已发布。".to_string())
+        Some("Connected to CUPS, but no shared printers were found. Check that CUPS sharing is enabled and printers are published.".to_string())
     } else {
         None
     };

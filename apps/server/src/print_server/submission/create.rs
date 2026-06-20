@@ -42,9 +42,13 @@ pub(super) async fn create_job(
     let job_id = Uuid::new_v4().to_string();
     let now = utils::now_unix();
     let data_json = serde_json::to_string(&payload.data)
-        .map_err(|_| ApiError::BadRequest("data 必须是有效 JSON".to_string()))?;
-    let print_options_json = serde_json::to_string(&payload.print_options)
-        .map_err(|_| ApiError::BadRequest("print_options 必须是有效 JSON".to_string()))?;
+        .map_err(|_| ApiError::bad_request("DATA_INVALID_JSON", "data must be valid JSON"))?;
+    let print_options_json = serde_json::to_string(&payload.print_options).map_err(|_| {
+        ApiError::bad_request(
+            "PRINT_OPTIONS_INVALID_JSON",
+            "print_options must be valid JSON",
+        )
+    })?;
 
     let insert_result = insert_template_job_at_path(
         state.db_path.as_ref(),

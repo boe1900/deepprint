@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getCurrentLocale, translate } from "@/i18n";
 import { getRequestErrorMessage, isAbortError, requestJson, signClientWriteHeaders } from "../api";
 import { createTypstFontsQueryOptions, deepprintQueryKeys } from "../queries";
 import { useLatestAsyncTask } from "./useLatestAsyncTask";
@@ -73,19 +74,19 @@ export function useTypstFontsActions({
       }
 
       if (hasAnyAuthInput && (!token || !secret)) {
-        throw new Error("若要发送签名请求，请同时填写 token 与 secret");
+        throw new Error(tr("typstAssets.authTokenSecretRequired"));
       }
 
       try {
         return await signClientWriteHeaders(method, path, bodyText, token || null, secret || null);
       } catch (error) {
-        const message = error instanceof Error ? error.message : "签名失败";
+        const message = error instanceof Error ? error.message : tr("typstAssets.signFailed");
         if (authRequiredForWrites) {
           throw new Error(
-            `当前 Agent 已启用操作鉴权，签名失败：${message}。请确认初始化向导已保存凭据，或在当前界面输入 token 与 secret。`,
+            tr("typstAssets.authRequiredSignFailed", { message }),
           );
         }
-        throw new Error(`签名失败：${message}`);
+        throw new Error(tr("typstAssets.signFailedWithMessage", { message }));
       }
     },
     [authRequiredForWrites, writeAuthSecret, writeAuthToken],
@@ -105,10 +106,10 @@ export function useTypstFontsActions({
       } catch (error) {
         if (isAbortError(error)) return;
 
-        const message = getRequestErrorMessage(error, "加载 Typst 字体失败");
+        const message = getRequestErrorMessage(error, tr("typstAssets.loadFontsFailed"));
         setError(message);
         if (!silent) {
-          setNotice({ kind: "error", message: `加载 Typst 字体失败: ${message}` });
+          setNotice({ kind: "error", message: tr("typstAssets.loadFontsFailedWithMessage", { message }) });
         }
       }
     },
@@ -152,14 +153,14 @@ export function useTypstFontsActions({
           ...createTypstFontsQueryOptions(baseUrl, requestTimeouts.writes),
           staleTime: 0,
         });
-        setNotice({ kind: "ok", message: `已安装 Typst 字体 ${file.name}` });
+        setNotice({ kind: "ok", message: tr("typstAssets.installFontNotice", { name: file.name }) });
       } catch (error) {
         if (!ticket.isCurrent()) return;
         if (isAbortError(error)) return;
 
-        const message = getRequestErrorMessage(error, "安装 Typst 字体失败");
+        const message = getRequestErrorMessage(error, tr("typstAssets.installFontFailed"));
         setError(message);
-        setNotice({ kind: "error", message: `安装 Typst 字体失败: ${message}` });
+        setNotice({ kind: "error", message: tr("typstAssets.installFontFailedWithMessage", { message }) });
       } finally {
         ticket.finish();
         if (ticket.isCurrent()) {
@@ -206,14 +207,14 @@ export function useTypstFontsActions({
           ...createTypstFontsQueryOptions(baseUrl, requestTimeouts.writes),
           staleTime: 0,
         });
-        setNotice({ kind: "ok", message: `已删除 Typst 字体 ${font.file_name}` });
+        setNotice({ kind: "ok", message: tr("typstAssets.deleteFontNotice", { name: font.file_name }) });
       } catch (error) {
         if (!ticket.isCurrent()) return;
         if (isAbortError(error)) return;
 
-        const message = getRequestErrorMessage(error, "删除 Typst 字体失败");
+        const message = getRequestErrorMessage(error, tr("typstAssets.deleteFontFailed"));
         setError(message);
-        setNotice({ kind: "error", message: `删除 Typst 字体失败: ${message}` });
+        setNotice({ kind: "error", message: tr("typstAssets.deleteFontFailedWithMessage", { message }) });
       } finally {
         ticket.finish();
         if (ticket.isCurrent()) {
@@ -238,4 +239,8 @@ export function useTypstFontsActions({
     onInstallTypstFont,
     onDeleteTypstFont,
   };
+}
+
+function tr(key: string, params?: Record<string, string | number | null | undefined>) {
+  return translate(getCurrentLocale(), key, params);
 }

@@ -1,4 +1,5 @@
 import type { PrinterInfo } from "./types";
+import { getCurrentLocale, translate } from "@/i18n";
 
 export function statusBadgeVariant(status: string | null | undefined) {
   const normalized = (status ?? "").toLowerCase();
@@ -21,18 +22,18 @@ export function noticeBadgeVariant(kind: "ok" | "error") {
 }
 
 export function printerStateLabel(printer: PrinterInfo) {
-  if (!printer.enabled) return "已停用";
+  if (!printer.enabled) return translate(getCurrentLocale(), "printer.state.disabled");
   const normalized = (printer.state ?? "").toLowerCase();
-  if (normalized.includes("idle")) return "空闲";
-  if (normalized.includes("process") || normalized.includes("busy")) return "处理中";
-  if (normalized.includes("stop")) return "已停止";
-  return printer.state?.trim() || "未知";
+  if (normalized.includes("idle")) return translate(getCurrentLocale(), "printer.state.idle");
+  if (normalized.includes("process") || normalized.includes("busy")) return translate(getCurrentLocale(), "printer.state.processing");
+  if (normalized.includes("stop")) return translate(getCurrentLocale(), "printer.state.stopped");
+  return printer.state?.trim() || translate(getCurrentLocale(), "common.unknown");
 }
 
 export function printerSourceLabel(source: PrinterInfo["source"]) {
   switch (source) {
     case "manual":
-      return "手动";
+      return translate(getCurrentLocale(), "printer.source.manual");
     case "cups_import":
       return "CUPS";
     case "mdns":

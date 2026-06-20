@@ -1,4 +1,5 @@
 import { useCallback, type FormEvent } from "react";
+import { getCurrentLocale, translate } from "@/i18n";
 import { getRequestErrorMessage, isAbortError, requestJson } from "../api";
 import {
   buildRequestId,
@@ -95,7 +96,7 @@ export function useWritesDirectCancelActions({
 
         const file = input?.file ?? directSelectedFile;
         if (!file) {
-          throw new Error("请选择要打印的文件");
+          throw new Error(tr("writes.selectFile"));
         }
 
         if (
@@ -104,13 +105,16 @@ export function useWritesDirectCancelActions({
           file.size > directJobMaxBytes
         ) {
           throw new Error(
-            `文件过大：${formatBytes(file.size)}，超过服务端限制 ${formatBytes(directJobMaxBytes)}`,
+            tr("writes.fileTooLarge", {
+              size: formatBytes(file.size),
+              limit: formatBytes(directJobMaxBytes),
+            }),
           );
         }
 
         const printerId = directPrinterId.trim();
         if (!printerId) {
-          throw new Error("请选择托管打印机");
+          throw new Error(tr("writes.selectManagedPrinter"));
         }
 
         const printOptions = input?.printOptions ?? buildDirectPrintOptions();
@@ -143,16 +147,16 @@ export function useWritesDirectCancelActions({
         if (!ticket.isCurrent()) return;
 
         const message = result.idempotent
-          ? `直打任务已存在（幂等复用）: ${result.job_id}`
-          : `直打任务创建成功: ${result.job_id}`;
+          ? tr("writes.createDirectIdempotent", { jobId: result.job_id })
+          : tr("writes.createDirectSucceeded", { jobId: result.job_id });
         setNotice({ kind: "ok", message });
       } catch (error) {
         if (!ticket.isCurrent()) return;
         if (isAbortError(error)) return;
 
-        const message = getRequestErrorMessage(error, "创建直打任务失败");
+        const message = getRequestErrorMessage(error, tr("writes.createDirectFailed"));
         setDirectError(message);
-        setNotice({ kind: "error", message: `创建直打任务失败: ${message}` });
+        setNotice({ kind: "error", message: tr("writes.createDirectFailedWithMessage", { message }) });
       } finally {
         ticket.finish();
         if (ticket.isCurrent()) {
@@ -187,7 +191,7 @@ export function useWritesDirectCancelActions({
         const targetJobId =
           cancelTargetJobId.trim() || currentJobId || latestCreatedJobId || jobIdInput.trim();
         if (!targetJobId) {
-          throw new Error("请输入要取消的 job_id");
+          throw new Error(tr("writes.jobIdRequired"));
         }
 
         const encodedJobId = encodeURIComponent(targetJobId);
@@ -212,14 +216,14 @@ export function useWritesDirectCancelActions({
 
         if (!ticket.isCurrent()) return;
 
-        setNotice({ kind: "ok", message: `取消请求已提交: ${result.job_id}` });
+        setNotice({ kind: "ok", message: tr("writes.cancelSubmitted", { jobId: result.job_id }) });
       } catch (error) {
         if (!ticket.isCurrent()) return;
         if (isAbortError(error)) return;
 
-        const message = getRequestErrorMessage(error, "取消任务失败");
+        const message = getRequestErrorMessage(error, tr("writes.cancelFailed"));
         setCancelError(message);
-        setNotice({ kind: "error", message: `取消任务失败: ${message}` });
+        setNotice({ kind: "error", message: tr("writes.cancelFailedWithMessage", { message }) });
       } finally {
         ticket.finish();
         if (ticket.isCurrent()) {
@@ -250,4 +254,8 @@ export function useWritesDirectCancelActions({
     onCreateDirectJob,
     onCancelJob,
   };
+}
+
+function tr(key: string, params?: Record<string, string | number | null | undefined>) {
+  return translate(getCurrentLocale(), key, params);
 }

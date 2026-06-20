@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getCurrentLocale, translate } from "@/i18n";
 import { getRequestErrorMessage, requestJson, signClientWriteHeaders, isAbortError } from "../api";
 import {
   createTypstPackagesQueryOptions,
@@ -82,19 +83,19 @@ export function useTypstPackagesActions({
       }
 
       if (hasAnyAuthInput && (!token || !secret)) {
-        throw new Error("若要发送签名请求，请同时填写 token 与 secret");
+        throw new Error(tr("typstAssets.authTokenSecretRequired"));
       }
 
       try {
         return await signClientWriteHeaders(method, path, bodyText, token || null, secret || null);
       } catch (error) {
-        const message = error instanceof Error ? error.message : "签名失败";
+        const message = error instanceof Error ? error.message : tr("typstAssets.signFailed");
         if (authRequiredForWrites) {
           throw new Error(
-            `当前 Agent 已启用操作鉴权，签名失败：${message}。请确认初始化向导已保存凭据，或在当前界面输入 token 与 secret。`,
+            tr("typstAssets.authRequiredSignFailed", { message }),
           );
         }
-        throw new Error(`签名失败：${message}`);
+        throw new Error(tr("typstAssets.signFailedWithMessage", { message }));
       }
     },
     [authRequiredForWrites, writeAuthSecret, writeAuthToken],
@@ -114,10 +115,10 @@ export function useTypstPackagesActions({
       } catch (error) {
         if (isAbortError(error)) return;
 
-        const message = getRequestErrorMessage(error, "加载 Typst 包失败");
+        const message = getRequestErrorMessage(error, tr("typstAssets.loadPackagesFailed"));
         setError(message);
         if (!silent) {
-          setNotice({ kind: "error", message: `加载 Typst 包失败: ${message}` });
+          setNotice({ kind: "error", message: tr("typstAssets.loadPackagesFailedWithMessage", { message }) });
         }
       }
     },
@@ -163,15 +164,19 @@ export function useTypstPackagesActions({
         });
         setNotice({
           kind: "ok",
-          message: `已安装 Typst 包 @${result.namespace}/${result.name}:${result.version}`,
+          message: tr("typstAssets.installPackageNotice", {
+            namespace: result.namespace,
+            name: result.name,
+            version: result.version,
+          }),
         });
       } catch (error) {
         if (!ticket.isCurrent()) return;
         if (isAbortError(error)) return;
 
-        const message = getRequestErrorMessage(error, "安装 Typst 包失败");
+        const message = getRequestErrorMessage(error, tr("typstAssets.installPackageFailed"));
         setError(message);
-        setNotice({ kind: "error", message: `安装 Typst 包失败: ${message}` });
+        setNotice({ kind: "error", message: tr("typstAssets.installPackageFailedWithMessage", { message }) });
       } finally {
         ticket.finish();
         if (ticket.isCurrent()) {
@@ -224,15 +229,19 @@ export function useTypstPackagesActions({
         });
         setNotice({
           kind: "ok",
-          message: `已删除 Typst 包 @${pkg.namespace}/${pkg.name}:${pkg.version}`,
+          message: tr("typstAssets.deletePackageNotice", {
+            namespace: pkg.namespace,
+            name: pkg.name,
+            version: pkg.version,
+          }),
         });
       } catch (error) {
         if (!ticket.isCurrent()) return;
         if (isAbortError(error)) return;
 
-        const message = getRequestErrorMessage(error, "删除 Typst 包失败");
+        const message = getRequestErrorMessage(error, tr("typstAssets.deletePackageFailed"));
         setError(message);
-        setNotice({ kind: "error", message: `删除 Typst 包失败: ${message}` });
+        setNotice({ kind: "error", message: tr("typstAssets.deletePackageFailedWithMessage", { message }) });
       } finally {
         ticket.finish();
         if (ticket.isCurrent()) {
@@ -276,14 +285,14 @@ export function useTypstPackagesActions({
         ...createTypstPackagesQueryOptions(baseUrl, requestTimeouts.writes),
         staleTime: 0,
       });
-      setNotice({ kind: "ok", message: "已清理 preview 包缓存" });
+      setNotice({ kind: "ok", message: tr("typstAssets.clearPreviewCacheNotice") });
     } catch (error) {
       if (!ticket.isCurrent()) return;
       if (isAbortError(error)) return;
 
-      const message = getRequestErrorMessage(error, "清理 preview 缓存失败");
+      const message = getRequestErrorMessage(error, tr("typstAssets.clearPreviewCacheFailed"));
       setError(message);
-      setNotice({ kind: "error", message: `清理 preview 缓存失败: ${message}` });
+      setNotice({ kind: "error", message: tr("typstAssets.clearPreviewCacheFailedWithMessage", { message }) });
     } finally {
       ticket.finish();
       if (ticket.isCurrent()) {
@@ -307,4 +316,8 @@ export function useTypstPackagesActions({
     onDeleteTypstPackage,
     onClearTypstPreviewCache,
   };
+}
+
+function tr(key: string, params?: Record<string, string | number | null | undefined>) {
+  return translate(getCurrentLocale(), key, params);
 }

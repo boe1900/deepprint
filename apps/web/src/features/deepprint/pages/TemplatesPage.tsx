@@ -27,8 +27,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useI18n, type MessageKey } from "@/i18n";
 import { cn } from "@/lib/utils";
-import { requestJson } from "../api";
+import { getRequestErrorMessage, requestJson } from "../api";
 import type { DeepprintController } from "../controller";
 import { createTemplateWorkspaceQueryOptions } from "../queries";
 import type { TemplateGroup, TemplateGroupResponse, TemplateRecord, TemplateResponse } from "../types";
@@ -71,6 +72,7 @@ const DEFAULT_TEMPLATE_DATA = JSON.stringify(
 const PREVIEW_DEBOUNCE_MS = 180;
 
 export function TemplatesPage({ controller, onNavigatePrint }: TemplatesPageProps) {
+  const { t } = useI18n();
   const { actions, ui, writes } = controller;
   const queryClient = useQueryClient();
   const [groups, setGroups] = useState<TemplateGroup[]>([]);
@@ -171,7 +173,7 @@ export function TemplatesPage({ controller, onNavigatePrint }: TemplatesPageProp
         });
         applyWorkspace(workspace.groups, preferredTemplateId);
       } catch (err) {
-        const message = err instanceof Error ? err.message : "加载模板失败";
+        const message = getRequestErrorMessage(err, t("templates.loadFailed"));
         setError(message);
       } finally {
         setWorkspaceRefreshing(false);
@@ -189,7 +191,7 @@ export function TemplatesPage({ controller, onNavigatePrint }: TemplatesPageProp
 
   useEffect(() => {
     if (workspaceQuery.error) {
-      const message = workspaceQuery.error instanceof Error ? workspaceQuery.error.message : "加载模板失败";
+      const message = getRequestErrorMessage(workspaceQuery.error, t("templates.loadFailed"));
       setError(message);
     }
   }, [workspaceQuery.error]);
@@ -337,9 +339,9 @@ export function TemplatesPage({ controller, onNavigatePrint }: TemplatesPageProp
       }
 
       setDialog(null);
-      ui.setNotice({ kind: "ok", message: "模板信息已保存" });
+      ui.setNotice({ kind: "ok", message: t("templates.savedInfoNotice") });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "保存失败";
+      const message = getRequestErrorMessage(err, t("templates.saveFailed"));
       ui.setNotice({ kind: "error", message });
     } finally {
       setDialogSubmitting(false);
@@ -367,9 +369,9 @@ export function TemplatesPage({ controller, onNavigatePrint }: TemplatesPageProp
         },
       );
       await loadWorkspace(result.template.id);
-      ui.setNotice({ kind: "ok", message: "模板已保存" });
+      ui.setNotice({ kind: "ok", message: t("templates.savedTemplateNotice") });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "保存模板失败";
+      const message = getRequestErrorMessage(err, t("templates.saveTemplateFailed"));
       ui.setNotice({ kind: "error", message });
     } finally {
       setSaving(false);
@@ -384,9 +386,9 @@ export function TemplatesPage({ controller, onNavigatePrint }: TemplatesPageProp
         { method: "POST", body: JSON.stringify({}), timeoutMs: ui.requestTimeouts.writes },
       );
       await loadWorkspace(activeTemplateId);
-      ui.setNotice({ kind: "ok", message: "分组已删除" });
+      ui.setNotice({ kind: "ok", message: t("templates.deleteGroupNotice") });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "删除分组失败";
+      const message = getRequestErrorMessage(err, t("templates.deleteGroupFailed"));
       ui.setNotice({ kind: "error", message });
     }
   };
@@ -399,9 +401,9 @@ export function TemplatesPage({ controller, onNavigatePrint }: TemplatesPageProp
         { method: "POST", body: JSON.stringify({}), timeoutMs: ui.requestTimeouts.writes },
       );
       await loadWorkspace("");
-      ui.setNotice({ kind: "ok", message: "模板已删除" });
+      ui.setNotice({ kind: "ok", message: t("templates.deleteTemplateNotice") });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "删除模板失败";
+      const message = getRequestErrorMessage(err, t("templates.deleteTemplateFailed"));
       ui.setNotice({ kind: "error", message });
     }
   };
@@ -465,11 +467,11 @@ export function TemplatesPage({ controller, onNavigatePrint }: TemplatesPageProp
                 </span>
                 <span className="flex min-w-0 flex-col justify-center">
                   <span className="mb-0.5 flex items-center gap-1.5 text-[11px] font-medium leading-tight text-muted-foreground">
-                    <span className="truncate max-w-[8rem]">{activeGroup?.name ?? "模板管理"}</span>
+                    <span className="truncate max-w-[8rem]">{activeGroup?.name ?? t("templates.title")}</span>
                     <span>/</span>
                   </span>
                   <span className="flex min-w-0 items-center gap-1.5 text-sm font-semibold leading-tight">
-                    <span className="truncate max-w-[14rem]">{activeTemplate?.name ?? "选择模板"}</span>
+                    <span className="truncate max-w-[14rem]">{activeTemplate?.name ?? t("templates.title")}</span>
                     <ChevronDownIcon
                       className={cn("size-3.5 shrink-0 text-muted-foreground transition-transform", switcherOpen && "rotate-180")}
                     />
@@ -487,7 +489,7 @@ export function TemplatesPage({ controller, onNavigatePrint }: TemplatesPageProp
                       autoFocus
                       value={search}
                       onChange={(event) => setSearch(event.target.value)}
-                      placeholder="搜索模板或分组..."
+                      placeholder={t("templates.searchPlaceholder")}
                       className="h-9 pl-9"
                     />
                   </div>
@@ -495,11 +497,11 @@ export function TemplatesPage({ controller, onNavigatePrint }: TemplatesPageProp
 
                 <div className="min-h-0 flex-1 overflow-y-auto p-2">
                   {loading && groups.length === 0 ? (
-                    <SwitcherEmpty>正在加载模板...</SwitcherEmpty>
+                    <SwitcherEmpty>{t("templates.loading")}</SwitcherEmpty>
                   ) : error ? (
                     <SwitcherEmpty tone="destructive">{error}</SwitcherEmpty>
                   ) : filteredGroups.length === 0 ? (
-                    <SwitcherEmpty>没有匹配的模板。</SwitcherEmpty>
+                    <SwitcherEmpty>{t("templates.emptySwitcher")}</SwitcherEmpty>
                   ) : (
                     <div className="space-y-3">
                       {filteredGroups.map((group) => {
@@ -527,7 +529,7 @@ export function TemplatesPage({ controller, onNavigatePrint }: TemplatesPageProp
                               </span>
                             </button>
                             <IconAction
-                              label="新建模板"
+                              label={t("templates.createTemplate")}
                               icon={<PlusIcon />}
                               onClick={() => {
                                 setSwitcherOpen(false);
@@ -535,7 +537,7 @@ export function TemplatesPage({ controller, onNavigatePrint }: TemplatesPageProp
                               }}
                             />
                             <IconAction
-                              label="编辑分组"
+                              label={t("templates.editGroup")}
                               icon={<PencilIcon />}
                               onClick={() => {
                                 setSwitcherOpen(false);
@@ -544,7 +546,7 @@ export function TemplatesPage({ controller, onNavigatePrint }: TemplatesPageProp
                             />
                             <IconAction
                               danger
-                              label="删除分组"
+                              label={t("templates.deleteGroup")}
                               icon={<Trash2Icon />}
                               onClick={() => {
                                 setSwitcherOpen(false);
@@ -593,7 +595,7 @@ export function TemplatesPage({ controller, onNavigatePrint }: TemplatesPageProp
                     }}
                   >
                     <PlusIcon data-icon="inline-start" />
-                    新建分组
+                    {t("templates.createGroup")}
                   </Button>
                 </div>
               </div>
@@ -606,18 +608,18 @@ export function TemplatesPage({ controller, onNavigatePrint }: TemplatesPageProp
               variant="ghost"
               size="icon"
               disabled={!activeTemplate}
-              title="编辑模板信息"
+              title={t("templates.editInfo")}
               onClick={() => activeTemplate && openDialog({ kind: "template-edit", template: activeTemplate })}
             >
               <PencilIcon className="size-4" />
             </Button>
             <Button type="button" variant="outline" disabled={!activeTemplate} onClick={printActiveTemplate}>
               <PrinterIcon data-icon="inline-start" />
-              <span className="hidden sm:inline">打印</span>
+              <span className="hidden sm:inline">{t("templates.print")}</span>
             </Button>
             <Button type="button" disabled={!activeTemplate || saving} onClick={() => void saveActiveTemplate()}>
               {saving ? <Loader2Icon data-icon="inline-start" className="animate-spin" /> : <SaveIcon data-icon="inline-start" />}
-              <span>{hasUnsavedChanges ? "保存更改" : "保存"}</span>
+              <span>{hasUnsavedChanges ? t("templates.saveChanges") : t("templates.save")}</span>
             </Button>
           </div>
         </div>
@@ -634,18 +636,18 @@ export function TemplatesPage({ controller, onNavigatePrint }: TemplatesPageProp
                     <h2 className="truncate text-sm font-semibold">{activeTemplate.name}</h2>
                   </div>
                   <p className="mt-1 truncate text-xs text-muted-foreground">
-                    {activeTemplate.description || activeTemplate.output_name || "Typst 模板"}
+                    {activeTemplate.description || activeTemplate.output_name || t("templates.templateFallback")}
                   </p>
                 </div>
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
                   <TabsList className="w-full sm:w-auto">
                     <TabsTrigger value="code" className="flex-1 sm:flex-none">
                       <CodeIcon data-icon="inline-start" />
-                      Typst 代码
+                      {t("templates.codeTab")}
                     </TabsTrigger>
                     <TabsTrigger value="data" className="flex-1 sm:flex-none">
                       <DatabaseIcon data-icon="inline-start" />
-                      JSON 数据
+                      {t("templates.jsonTab")}
                     </TabsTrigger>
                   </TabsList>
                 </Tabs>
@@ -659,7 +661,7 @@ export function TemplatesPage({ controller, onNavigatePrint }: TemplatesPageProp
                       fillHeight
                       language="typst"
                       onChange={setCodeValue}
-                      placeholder="输入 Typst 模板代码..."
+                      placeholder={t("templates.placeholderCode")}
                       value={codeValue}
                     />
                   ) : (
@@ -667,7 +669,7 @@ export function TemplatesPage({ controller, onNavigatePrint }: TemplatesPageProp
                       className="rounded-none ring-0 focus-within:ring-0"
                       fillHeight
                       language="json"
-                      placeholder="输入模板数据 JSON..."
+                      placeholder={t("templates.placeholderData")}
                       value={dataValue}
                       onChange={setDataValue}
                     />
@@ -676,9 +678,9 @@ export function TemplatesPage({ controller, onNavigatePrint }: TemplatesPageProp
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-2 border-t px-4 py-3 text-xs text-muted-foreground sm:px-5">
-                <span>编辑后会自动刷新右侧预览。</span>
+                <span>{t("templates.updatePreviewHint")}</span>
                 <span className={cn("font-medium", hasUnsavedChanges ? "text-amber-600" : "text-muted-foreground")}>
-                  {hasUnsavedChanges ? "有未保存更改" : "当前内容已保存"}
+                  {hasUnsavedChanges ? t("templates.unsaved") : t("templates.autoSaved")}
                 </span>
               </div>
             </section>
@@ -688,10 +690,10 @@ export function TemplatesPage({ controller, onNavigatePrint }: TemplatesPageProp
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="size-2 rounded-full bg-emerald-500" />
-                    <h2 className="text-sm font-semibold">实时预览</h2>
+                    <h2 className="text-sm font-semibold">{t("templates.previewTitle")}</h2>
                   </div>
                   <p className="mt-1 truncate text-xs text-muted-foreground">
-                    {activeTemplate.output_name || "预览 PDF"}
+                    {activeTemplate.output_name || t("templates.previewPdf")}
                   </p>
                 </div>
                 <Badge variant="outline">PDF</Badge>
@@ -701,7 +703,7 @@ export function TemplatesPage({ controller, onNavigatePrint }: TemplatesPageProp
                 <Suspense fallback={<PreviewLoadingState />}>
                   <PdfPreview
                     className="h-full min-h-[460px] lg:min-h-0"
-                    emptyMessage="编辑模板代码或示例数据后会自动生成预览。"
+                    emptyMessage={t("templates.emptyPreview")}
                     loading={writes.previewLoading}
                     source={writes.previewPdfUrl}
                   />
@@ -716,7 +718,7 @@ export function TemplatesPage({ controller, onNavigatePrint }: TemplatesPageProp
                 </div>
               ) : (
                 <div className="flex items-center justify-between border-t px-4 py-3 text-xs text-muted-foreground sm:px-5">
-                  <span>Typst 渲染结果</span>
+                  <span>{t("templates.renderResult")}</span>
                   <span>{activeTemplate.output_name || "template.pdf"}</span>
                 </div>
               )}
@@ -725,24 +727,24 @@ export function TemplatesPage({ controller, onNavigatePrint }: TemplatesPageProp
         ) : (
           <Card className="mx-auto max-w-2xl">
             <CardHeader className="text-center">
-              <CardTitle>{loading ? "正在加载模板" : "还没有可编辑的模板"}</CardTitle>
+              <CardTitle>{loading ? t("templates.loading") : t("templates.emptyTitle")}</CardTitle>
               <CardDescription>
                 {error
                   ? error
                   : loading
-                    ? "模板工作台马上就绪。"
-                    : "先创建分组，再创建模板，就可以在这里编辑 Typst 和示例数据。"}
+                    ? t("templates.emptyLoadingDescription")
+                    : t("templates.emptyDescription")}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-wrap justify-center gap-2">
               <Button type="button" variant="outline" onClick={() => openDialog({ kind: "group-create" })}>
                 <PlusIcon data-icon="inline-start" />
-                新建分组
+                {t("templates.createGroup")}
               </Button>
               {groups.length > 0 ? (
                 <Button type="button" onClick={() => openDialog({ kind: "template-create", groupId: groups[0]?.id })}>
                   <FileTextIcon data-icon="inline-start" />
-                  新建模板
+                  {t("templates.createTemplate")}
                 </Button>
               ) : null}
             </CardContent>
@@ -754,32 +756,32 @@ export function TemplatesPage({ controller, onNavigatePrint }: TemplatesPageProp
         <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-4">
           <Card className="pointer-events-auto max-h-[calc(100vh-5rem)] w-full max-w-lg overflow-y-auto shadow-xl sm:w-[32rem]">
             <CardHeader>
-              <CardTitle>{dialogTitle(dialog)}</CardTitle>
-              <CardDescription>{dialogDescriptionText(dialog)}</CardDescription>
+              <CardTitle>{dialogTitle(dialog, t)}</CardTitle>
+              <CardDescription>{dialogDescriptionText(dialog, t)}</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               <div className="flex flex-col gap-2">
-                <Label htmlFor="dialog-name">名称</Label>
+                <Label htmlFor="dialog-name">{t("templates.name")}</Label>
                 <Input
                   id="dialog-name"
                   value={dialogName}
                   onChange={(event) => setDialogName(event.target.value)}
-                  placeholder="请输入名称"
+                  placeholder={t("templates.namePlaceholder")}
                 />
               </div>
               {dialog.kind === "template-create" || dialog.kind === "template-edit" ? (
                 <>
                   <div className="flex flex-col gap-2">
-                    <Label htmlFor="dialog-description">描述</Label>
+                    <Label htmlFor="dialog-description">{t("templates.description")}</Label>
                     <Input
                       id="dialog-description"
                       value={dialogDescription}
                       onChange={(event) => setDialogDescription(event.target.value)}
-                      placeholder="可选"
+                      placeholder={t("templates.optional")}
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <Label htmlFor="dialog-group">所属分组</Label>
+                    <Label htmlFor="dialog-group">{t("templates.group")}</Label>
                     <label className="flex h-9 items-center rounded-lg border bg-background px-3 text-sm">
                       <select
                         id="dialog-group"
@@ -800,7 +802,7 @@ export function TemplatesPage({ controller, onNavigatePrint }: TemplatesPageProp
               ) : null}
               <div className="flex justify-end gap-2 pt-2">
                 <Button type="button" variant="outline" onClick={() => setDialog(null)}>
-                  取消
+                  {t("common.cancel")}
                 </Button>
                 <Button
                   type="button"
@@ -811,7 +813,7 @@ export function TemplatesPage({ controller, onNavigatePrint }: TemplatesPageProp
                   }
                   onClick={() => void submitDialog()}
                 >
-                  保存
+                  {t("templates.save")}
                 </Button>
               </div>
             </CardContent>
@@ -823,20 +825,20 @@ export function TemplatesPage({ controller, onNavigatePrint }: TemplatesPageProp
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm">
           <Card className="w-full max-w-md shadow-xl">
             <CardHeader>
-              <CardTitle>{deleteTarget.kind === "group" ? "删除分组" : "删除模板"}</CardTitle>
+              <CardTitle>{deleteTarget.kind === "group" ? t("templates.deleteGroup") : t("templates.deleteTemplate")}</CardTitle>
               <CardDescription>
                 {deleteTarget.kind === "group"
-                  ? `确认删除分组“${deleteTarget.group.name}”？如果分组下还有模板，系统会阻止删除。`
-                  : `确认删除模板“${deleteTarget.template.name}”？此操作不可撤销。`}
+                  ? t("templates.deleteGroupConfirm", { name: deleteTarget.group.name })
+                  : t("templates.deleteTemplateConfirm", { name: deleteTarget.template.name })}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" disabled={deleteSubmitting} onClick={() => setDeleteTarget(null)}>
-                  取消
+                  {t("common.cancel")}
                 </Button>
                 <Button type="button" variant="destructive" disabled={deleteSubmitting} onClick={() => void confirmDelete()}>
-                  删除
+                  {t("common.delete")}
                 </Button>
               </div>
             </CardContent>
@@ -860,6 +862,7 @@ function TemplateSwitcherItem({
   onEdit: () => void;
   template: TemplateRecord;
 }) {
+  const { t } = useI18n();
   return (
     <div
       className={cn(
@@ -878,8 +881,8 @@ function TemplateSwitcherItem({
           ) : null}
         </span>
       </button>
-      <IconAction label="编辑模板" icon={<PencilIcon />} onClick={onEdit} />
-      <IconAction danger label="删除模板" icon={<Trash2Icon />} onClick={onDelete} />
+      <IconAction label={t("templates.editTemplate")} icon={<PencilIcon />} onClick={onEdit} />
+      <IconAction danger label={t("templates.deleteTemplate")} icon={<Trash2Icon />} onClick={onDelete} />
     </div>
   );
 }
@@ -929,44 +932,46 @@ function SwitcherEmpty({ children, tone }: { children: ReactNode; tone?: "destru
   );
 }
 
-function dialogTitle(dialog: Exclude<DialogMode, null>) {
+function dialogTitle(dialog: Exclude<DialogMode, null>, t: (key: MessageKey) => string) {
   switch (dialog.kind) {
     case "group-create":
-      return "新建分组";
+      return t("templates.createGroup");
     case "group-edit":
-      return "编辑分组";
+      return t("templates.editGroup");
     case "template-create":
-      return "新建模板";
+      return t("templates.createTemplate");
     case "template-edit":
-      return "编辑模板信息";
+      return t("templates.editInfo");
   }
 }
 
-function dialogDescriptionText(dialog: Exclude<DialogMode, null>) {
+function dialogDescriptionText(dialog: Exclude<DialogMode, null>, t: (key: MessageKey) => string) {
   switch (dialog.kind) {
     case "group-create":
-      return "创建一个模板分组。";
+      return t("templates.dialogCreateGroupDescription");
     case "group-edit":
-      return "修改模板分组名称。";
+      return t("templates.dialogEditGroupDescription");
     case "template-create":
-      return "创建模板后可以编辑 Typst 代码和示例数据。";
+      return t("templates.dialogCreateTemplateDescription");
     case "template-edit":
-      return "修改模板名称、描述和所属分组。";
+      return t("templates.dialogEditTemplateDescription");
   }
 }
 
 function EditorLoadingState() {
+  const { t } = useI18n();
   return (
     <div className="flex h-full min-h-[420px] items-center justify-center bg-background text-sm text-muted-foreground">
-      正在加载编辑器...
+      {t("templates.editorLoading")}
     </div>
   );
 }
 
 function PreviewLoadingState() {
+  const { t } = useI18n();
   return (
     <div className="flex h-full min-h-[460px] items-center justify-center bg-muted/20 text-sm text-muted-foreground">
-      正在加载预览器...
+      {t("templates.previewLoading")}
     </div>
   );
 }

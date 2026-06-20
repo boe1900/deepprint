@@ -37,7 +37,12 @@ pub(super) async fn preview_typst(
         template_content: payload.template_content,
         data: payload.data,
         print_options: serde_json::to_value(payload.print_options)
-            .map_err(|err| ApiError::BadRequest(format!("print_options 必须是有效 JSON: {err}")))?,
+            .map_err(|err| {
+                ApiError::bad_request(
+                    "PRINT_OPTIONS_INVALID_JSON",
+                    format!("print_options must be valid JSON: {err}"),
+                )
+            })?,
     };
 
     let render_result =

@@ -16,12 +16,14 @@ import { Label } from "@/components/ui/label"
 import { login } from "@/features/auth/api"
 import { authQueryKeys, createAuthMeQueryOptions } from "@/features/auth/queries"
 import { getAuthBaseUrl } from "@/features/auth/session"
+import { useI18n } from "@/i18n"
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
 })
 
 function LoginPage() {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const baseUrl = useMemo(() => getAuthBaseUrl(), [])
@@ -76,8 +78,8 @@ function LoginPage() {
 
         <Card className="shadow-sm">
           <CardHeader className="text-center">
-            <CardTitle className="text-lg">登录控制台</CardTitle>
-            <CardDescription>使用本地管理员账号进入当前实例。</CardDescription>
+            <CardTitle className="text-lg">{t("auth.loginTitle")}</CardTitle>
+            <CardDescription>{t("auth.loginDescription")}</CardDescription>
           </CardHeader>
           <CardContent>
             <form
@@ -89,7 +91,7 @@ function LoginPage() {
               }}
             >
               <div className="flex flex-col gap-2">
-                <Label htmlFor="username">用户名</Label>
+                <Label htmlFor="username">{t("auth.username")}</Label>
                 <Input
                   id="username"
                   autoComplete="username"
@@ -101,7 +103,7 @@ function LoginPage() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <Label htmlFor="password">密码</Label>
+                <Label htmlFor="password">{t("auth.password")}</Label>
                 <Input
                   id="password"
                   type="password"
@@ -129,7 +131,7 @@ function LoginPage() {
                     className="animate-spin"
                   />
                 ) : null}
-                登录
+                {t("auth.login")}
               </Button>
             </form>
           </CardContent>

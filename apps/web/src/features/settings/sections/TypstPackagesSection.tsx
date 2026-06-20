@@ -19,8 +19,10 @@ import { Input } from "@/components/ui/input";
 import type { DeepprintController } from "@/features/deepprint/controller";
 import type { TypstPackageInfo } from "@/features/deepprint/types";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n";
 
 export function TypstPackagesSection({ controller }: { controller: DeepprintController }) {
+  const { t } = useI18n();
   const { actions, typstPackages } = controller;
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const previewPackages = typstPackages.packages.filter((pkg) => pkg.origin === "preview_cache");
@@ -40,12 +42,14 @@ export function TypstPackagesSection({ controller }: { controller: DeepprintCont
           <div className="space-y-1">
             <CardTitle className="flex items-center gap-2">
               <PackageIcon className="size-4 text-primary" />
-              已安装 Typst 包
+              {t("settings.packages.title")}
             </CardTitle>
             <CardDescription>
-              当前共 {typstPackages.packages.length} 个包，其中本地包{" "}
-              {typstPackages.packages.length - previewPackages.length} 个，preview 缓存{" "}
-              {previewPackages.length} 个。
+              {t("settings.packages.summary", {
+                total: typstPackages.packages.length,
+                local: typstPackages.packages.length - previewPackages.length,
+                preview: previewPackages.length,
+              })}
             </CardDescription>
           </div>
           <CardAction className="flex w-full flex-wrap gap-2 sm:w-auto">
@@ -60,7 +64,7 @@ export function TypstPackagesSection({ controller }: { controller: DeepprintCont
                 data-icon="inline-start"
                 className={cn(typstPackages.loading ? "animate-spin" : "")}
               />
-              刷新
+              {t("common.refresh")}
             </Button>
             <Button
               type="button"
@@ -69,7 +73,7 @@ export function TypstPackagesSection({ controller }: { controller: DeepprintCont
               onClick={() => fileInputRef.current?.click()}
             >
               <UploadIcon data-icon="inline-start" />
-              {typstPackages.installing ? "安装中..." : "上传安装包"}
+              {typstPackages.installing ? t("settings.packages.uploading") : t("settings.packages.upload")}
             </Button>
           </CardAction>
         </CardHeader>
@@ -87,10 +91,10 @@ export function TypstPackagesSection({ controller }: { controller: DeepprintCont
           <div className="flex flex-col gap-3 rounded-xl border bg-muted/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1">
               <div className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                已安装列表
+                {t("settings.packages.installedList")}
               </div>
               <div className="text-sm text-foreground">
-                支持删除单个包，也可以一键清理预览过程中自动拉取的 preview 依赖缓存。
+                {t("settings.packages.listDescription")}
               </div>
             </div>
             <Button
@@ -101,7 +105,7 @@ export function TypstPackagesSection({ controller }: { controller: DeepprintCont
               onClick={() => void actions.onClearTypstPreviewCache()}
             >
               <Trash2Icon data-icon="inline-start" />
-              {typstPackages.clearingPreviewCache ? "清理中..." : "清理 Preview 缓存"}
+              {typstPackages.clearingPreviewCache ? t("settings.packages.clearing") : t("settings.packages.clearPreviewCache")}
             </Button>
           </div>
 
@@ -131,13 +135,15 @@ function PackageList({
   onDelete: (pkg: TypstPackageInfo) => void;
   packages: TypstPackageInfo[];
 }) {
+  const { t } = useI18n();
+
   if (!packages.length) {
     return (
       <div className="flex flex-col items-center rounded-xl border border-dashed bg-muted/20 px-4 py-10 text-center">
         <PackageIcon className="mb-3 size-10 text-muted-foreground/40" />
-        <div className="text-sm font-medium text-foreground">暂无已安装 Typst 包</div>
+        <div className="text-sm font-medium text-foreground">{t("settings.packages.emptyTitle")}</div>
         <div className="mt-1 max-w-sm text-xs leading-5 text-muted-foreground">
-          可以上传本地安装包，或在模板渲染时由系统自动拉取 preview 依赖。这里会统一展示当前环境中可见的包。
+          {t("settings.packages.emptyDescription")}
         </div>
       </div>
     );
@@ -191,7 +197,7 @@ function PackageList({
                   onClick={() => onDelete(pkg)}
                 >
                   <Trash2Icon data-icon="inline-start" />
-                  {deletingKey === key ? "删除中..." : "删除"}
+                  {deletingKey === key ? t("common.deleting") : t("common.delete")}
                 </Button>
               </div>
             </div>

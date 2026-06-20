@@ -7,6 +7,7 @@ import {
   type SetStateAction,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { getCurrentLocale, translate } from "@/i18n";
 import { getRequestErrorMessage, isAbortError, requestJson } from "../api";
 import { createJobDetailQueryOptions } from "../queries";
 import { useLatestAsyncTask } from "./useLatestAsyncTask";
@@ -116,7 +117,7 @@ export function useJobsActions({
         if (!ticket.isCurrent()) return null;
         if (isAbortError(error)) return null;
 
-        const message = getRequestErrorMessage(error, "任务查询失败");
+        const message = getRequestErrorMessage(error, tr("jobs.queryFailed"));
         if (source === "poll") {
           setJobPollError(message);
         } else {
@@ -162,7 +163,7 @@ export function useJobsActions({
       event.preventDefault();
       const jobId = jobIdInput.trim();
       if (!jobId) {
-        setJobError("请输入 job_id");
+        setJobError(tr("writes.jobIdRequired"));
         setJobResult(null);
         return;
       }
@@ -214,4 +215,8 @@ export function useJobsActions({
     onLookupJob,
     onRefreshCurrentJob,
   };
+}
+
+function tr(key: string, params?: Record<string, string | number | null | undefined>) {
+  return translate(getCurrentLocale(), key, params);
 }

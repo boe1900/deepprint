@@ -62,6 +62,7 @@ import {
   addPrinter,
   deletePrinter,
   discoverCupsPrinters,
+  getRequestErrorMessage,
   getCupsSettings,
   refreshPrinter,
   setDefaultPrinter,
@@ -82,7 +83,8 @@ import type {
   PrinterSource,
 } from "@/features/deepprint/types";
 import { formatUnixSec } from "@/features/deepprint/utils";
-import { printerStateLabel, statusBadgeVariant } from "@/features/deepprint/ui";
+import { statusBadgeVariant } from "@/features/deepprint/ui";
+import { getCurrentLocale, translate, useI18n, type MessageKey } from "@/i18n";
 import { cn } from "@/lib/utils";
 
 export function PrinterManagementPage({
@@ -92,6 +94,7 @@ export function PrinterManagementPage({
   controller: DeepprintController;
   showHeader?: boolean;
 }) {
+  const { t } = useI18n();
   const { actions, agent, authRequiredForWrites, ui, writes } = controller;
   const queryClient = useQueryClient();
   const [serviceLoading, setServiceLoading] = useState(false);
@@ -131,7 +134,7 @@ export function PrinterManagementPage({
   const choosePrinter = (printerId: string) => {
     writes.setCreatePrinterId(printerId);
     writes.setDirectPrinterId(printerId);
-    ui.setNotice({ kind: "ok", message: "已切换打印目标" });
+    ui.setNotice({ kind: "ok", message: t("printers.targetNotice") });
   };
 
   const loadPrinterManagement = async (showNotice = false) => {
@@ -142,12 +145,12 @@ export function PrinterManagementPage({
         throw refreshResult.reason;
       }
       if (showNotice) {
-        ui.setNotice({ kind: "ok", message: "打印服务状态已刷新" });
+        ui.setNotice({ kind: "ok", message: t("printers.refreshServiceNotice") });
       }
     } catch (error) {
       ui.setNotice({
         kind: "error",
-        message: getErrorMessage(error, "加载打印服务状态失败"),
+        message: getErrorMessage(error, t("printers.refreshServiceFailed")),
       });
     } finally {
       setServiceLoading(false);
@@ -162,7 +165,7 @@ export function PrinterManagementPage({
     } catch (error) {
       ui.setNotice({
         kind: "error",
-        message: getErrorMessage(error, "读取 CUPS 设置失败"),
+        message: getErrorMessage(error, t("printers.cupsReadFailed")),
       });
     } finally {
       setCupsSettingsLoading(false);
@@ -186,7 +189,7 @@ export function PrinterManagementPage({
       setCupsConnectionResult(result);
       ui.setNotice({ kind: "ok", message: result.message });
     } catch (error) {
-      const message = getErrorMessage(error, "CUPS 连接测试失败");
+      const message = getErrorMessage(error, t("printers.cupsTestFailed"));
       setCupsConnectionResult({
         ok: false,
         cups_base_url: trimmed,
@@ -213,7 +216,7 @@ export function PrinterManagementPage({
         authHeaders,
       );
       setCupsBaseUrlDraft(result.cups_base_url);
-      ui.setNotice({ kind: "ok", message: "CUPS 地址已保存" });
+      ui.setNotice({ kind: "ok", message: t("printers.cupsBaseUrlSaved") });
       await loadPrinterManagement(false);
       if (addPrinterModalOpen) {
         await loadDiscoveredCupsPrinters();
@@ -221,7 +224,7 @@ export function PrinterManagementPage({
     } catch (error) {
       ui.setNotice({
         kind: "error",
-        message: getErrorMessage(error, "保存 CUPS 设置失败"),
+        message: getErrorMessage(error, t("printers.cupsSavedFailed")),
       });
     } finally {
       setSavingCupsSettings(false);
@@ -267,11 +270,11 @@ export function PrinterManagementPage({
       ui.setNotice({
         kind: "ok",
         message: result.created
-          ? `已添加打印机 ${result.printer.name}`
-          : `打印机 ${result.printer.name} 已在纳管列表中`,
+          ? t("printers.addedNotice", { name: result.printer.name })
+          : t("printers.addExistingNotice", { name: result.printer.name }),
       });
     } catch (error) {
-      const message = getErrorMessage(error, "添加打印机失败");
+      const message = getErrorMessage(error, t("printers.addFailed"));
       setAddPrinterError(message);
       ui.setNotice({ kind: "error", message });
     } finally {
@@ -293,7 +296,7 @@ export function PrinterManagementPage({
       setDiscoveredCupsPrinters(result.printers);
       setDiscoveryMessage(result.message ?? null);
     } catch (error) {
-      setAddPrinterError(getErrorMessage(error, "发现 CUPS 打印机失败"));
+      setAddPrinterError(getErrorMessage(error, t("printers.discoverFailed")));
     } finally {
       setDiscoveringCupsPrinters(false);
     }
@@ -325,11 +328,11 @@ export function PrinterManagementPage({
       ui.setNotice({
         kind: "ok",
         message: result.created
-          ? `已添加打印机 ${result.printer.name}`
-          : `打印机 ${result.printer.name} 已在纳管列表中`,
+          ? t("printers.addedNotice", { name: result.printer.name })
+          : t("printers.addExistingNotice", { name: result.printer.name }),
       });
     } catch (error) {
-      const message = getErrorMessage(error, "添加打印机失败");
+      const message = getErrorMessage(error, t("printers.addFailed"));
       setAddPrinterError(message);
       ui.setNotice({ kind: "error", message });
     } finally {
@@ -354,11 +357,11 @@ export function PrinterManagementPage({
         queryKey: deepprintQueryKeys.printerDetail(ui.baseUrl, printerId),
       });
       await actions.loadPrinters();
-      ui.setNotice({ kind: "ok", message: `已刷新打印机 ${detail.name}` });
+      ui.setNotice({ kind: "ok", message: t("printers.refreshNotice", { name: detail.name }) });
     } catch (error) {
       ui.setNotice({
         kind: "error",
-        message: getErrorMessage(error, "刷新打印机失败"),
+        message: getErrorMessage(error, t("printers.refreshFailed")),
       });
     } finally {
       setRefreshingPrinterId(null);
@@ -386,12 +389,14 @@ export function PrinterManagementPage({
       await actions.loadPrinters();
       ui.setNotice({
         kind: "ok",
-        message: enabled ? `已启用打印机 ${printer.name}` : `已停用打印机 ${printer.name}`,
+        message: enabled
+          ? t("printers.updatedEnabledNotice", { name: printer.name })
+          : t("printers.updatedDisabledNotice", { name: printer.name }),
       });
     } catch (error) {
       ui.setNotice({
         kind: "error",
-        message: getErrorMessage(error, "更新打印机状态失败"),
+        message: getErrorMessage(error, t("printers.updateStatusFailed")),
       });
     } finally {
       setTogglingPrinterId(null);
@@ -415,11 +420,11 @@ export function PrinterManagementPage({
         queryKey: deepprintQueryKeys.printerDetail(ui.baseUrl, printer.id),
       });
       await actions.loadPrinters();
-      ui.setNotice({ kind: "ok", message: `已设 ${printer.name} 为默认打印机` });
+      ui.setNotice({ kind: "ok", message: t("printers.setDefaultNotice", { name: printer.name }) });
     } catch (error) {
       ui.setNotice({
         kind: "error",
-        message: getErrorMessage(error, "设置默认打印机失败"),
+        message: getErrorMessage(error, t("printers.setDefaultFailed")),
       });
     } finally {
       setDefaultingPrinterId(null);
@@ -448,14 +453,14 @@ export function PrinterManagementPage({
       if (writes.directPrinterId === pendingDelete.id) writes.setDirectPrinterId("");
       ui.setNotice({
         kind: "ok",
-        message: `已删除打印机 ${pendingDelete.name}`,
+        message: t("printers.deletedNotice", { name: pendingDelete.name }),
       });
       setPendingDelete(null);
       await actions.loadPrinters();
     } catch (error) {
       ui.setNotice({
         kind: "error",
-        message: getErrorMessage(error, "删除打印机失败"),
+        message: getErrorMessage(error, t("printers.deleteFailed")),
       });
     } finally {
       setDeletingPrinterId(null);
@@ -503,12 +508,12 @@ export function PrinterManagementPage({
   const printersDescription =
     agent.printersNote && agent.printersNote !== "-"
       ? agent.printersNote
-      : "管理已接入的打印机及其默认状态。";
+      : t("printers.emptyDescription");
   return (
     <div className="animate-in space-y-6 duration-300 fade-in slide-in-from-bottom-2">
       <SectionHeader
-        title={showHeader ? "打印机管理" : "打印服务中心"}
-        description="连接 CUPS，纳管打印机，并确认每台设备的状态与能力。"
+        title={showHeader ? t("printers.title") : t("printers.serviceCenter")}
+        description={t("printers.description")}
         health={agent.health}
         onAddPrinter={openAddPrinterModal}
         onOpenSettings={openSettingsPanel}
@@ -516,7 +521,7 @@ export function PrinterManagementPage({
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <ServiceMetricCard
-          title="服务状态"
+          title={t("printers.metricsService")}
           value={
             <span className="flex items-center gap-2">
               <StatusDot status={agent.health?.status} />
@@ -526,35 +531,41 @@ export function PrinterManagementPage({
           caption={
             agent.health
               ? `${agent.health.backend_name ?? "unknown"} / ${agent.health.render_engine}`
-              : "正在读取服务状态"
+              : t("printers.loadingService")
           }
           icon={<ActivityIcon className="size-5" />}
           tone={agent.health?.status === "ok" ? "success" : "warning"}
         />
         <ServiceMetricCard
-          title="队列中任务"
-          value={`${agent.health?.queue_length ?? 0} 个`}
-          caption={`渲染 ${agent.health?.rendering_jobs ?? 0} · 提交 ${agent.health?.submitting_jobs ?? 0} · 打印 ${agent.health?.printing_jobs ?? 0}`}
+          title={t("printers.metricsQueue")}
+          value={t("printers.metricsQueueValue", { count: agent.health?.queue_length ?? 0 })}
+          caption={t("printers.metricsQueueCaption", {
+            rendering: agent.health?.rendering_jobs ?? 0,
+            submitting: agent.health?.submitting_jobs ?? 0,
+            printing: agent.health?.printing_jobs ?? 0,
+          })}
           icon={<LayersIcon className="size-5" />}
         />
         <ServiceMetricCard
-          title="异常待处理"
-          value={(agent.health?.needs_attention_jobs ?? 0) > 0 ? `${agent.health?.needs_attention_jobs} 个` : "无异常"}
+          title={t("printers.metricsAttention")}
+          value={(agent.health?.needs_attention_jobs ?? 0) > 0
+            ? t("printers.metricsAttentionValue", { count: agent.health?.needs_attention_jobs ?? 0 })
+            : t("printers.metricsNoAttention")}
           caption={serverSummaryText(agent.health)}
           icon={<ShieldAlertIcon className="size-5" />}
           tone={(agent.health?.needs_attention_jobs ?? 0) > 0 ? "danger" : "neutral"}
         />
         <ServiceMetricCard
-          title="已稳定运行"
+          title={t("printers.metricsUptime")}
           value={formatDuration(agent.health?.uptime_seconds)}
-          caption={`版本 ${agent.health?.version ?? "读取中"}`}
+          caption={t("printers.version", { version: agent.health?.version ?? t("printers.status.loading") })}
           icon={<ClockIcon className="size-5" />}
         />
       </section>
 
       <Card className="overflow-hidden">
         <CardHeader className="gap-3 border-b pb-4">
-          <CardTitle>设备列表</CardTitle>
+          <CardTitle>{t("printers.deviceList")}</CardTitle>
           <CardDescription>{printersDescription}</CardDescription>
           <CardAction className="col-start-1 row-start-3 mt-2 flex w-full flex-col gap-2 justify-self-stretch sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:mt-0 sm:w-auto sm:flex-row sm:justify-self-end">
             <Button
@@ -566,7 +577,7 @@ export function PrinterManagementPage({
               onClick={() => void loadPrinterManagement(true)}
             >
               <RefreshCwIcon data-icon="inline-start" />
-              刷新状态
+              {t("printers.refreshStatus")}
             </Button>
           </CardAction>
         </CardHeader>
@@ -593,8 +604,8 @@ export function PrinterManagementPage({
       <Sheet open={addPrinterModalOpen} onOpenChange={setAddPrinterModalOpen}>
         <SheetContent className="w-full max-w-none overflow-hidden data-[side=right]:w-full data-[side=right]:sm:max-w-2xl">
           <SheetHeader>
-            <SheetTitle>添加打印机</SheetTitle>
-            <SheetDescription>从当前打印服务发现设备，或手动输入已知打印机 URI。</SheetDescription>
+            <SheetTitle>{t("printers.addTitle")}</SheetTitle>
+            <SheetDescription>{t("printers.settingsDescription")}</SheetDescription>
           </SheetHeader>
           <Tabs
             className="min-h-0 flex-1 gap-0 overflow-hidden"
@@ -604,10 +615,10 @@ export function PrinterManagementPage({
             <div className="border-b bg-muted/20 px-4 pt-2">
               <TabsList variant="line" className="w-full justify-start gap-4 sm:w-auto">
                 <TabsTrigger value="discover" className="flex-1 sm:flex-none">
-                  从当前 CUPS 发现
+                  {t("printers.discoverTab")}
                 </TabsTrigger>
                 <TabsTrigger value="manual" className="flex-1 sm:flex-none">
-                  手动输入地址
+                  {t("printers.manualTab")}
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -616,7 +627,7 @@ export function PrinterManagementPage({
               <TabsContent value="discover" className="m-0 space-y-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-sm leading-6 text-muted-foreground">
-                    读取当前 DeepPrint 后端已连接的 CUPS 打印机，选择后添加到设备列表。
+                    {t("printers.discoverDescription")}
                   </p>
                   <Button
                     type="button"
@@ -627,7 +638,7 @@ export function PrinterManagementPage({
                     onClick={() => void loadDiscoveredCupsPrinters()}
                   >
                     <RefreshCwIcon data-icon="inline-start" className={discoveringCupsPrinters ? "animate-spin" : undefined} />
-                    {discoveringCupsPrinters ? "发现中..." : "重新扫描"}
+                    {discoveringCupsPrinters ? t("printers.discovering") : t("printers.refreshScan")}
                   </Button>
                 </div>
 
@@ -648,7 +659,7 @@ export function PrinterManagementPage({
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
                                 <span className="truncate">{printer.display_name}</span>
-                                {printer.managed_printer_id ? <Badge variant="secondary">已在列表</Badge> : null}
+                                {printer.managed_printer_id ? <Badge variant="secondary">{t("printers.alreadyManaged")}</Badge> : null}
                               </div>
                               <div className="ui-selectable mt-1 max-w-full truncate font-mono text-xs text-muted-foreground" title={printer.candidate_uri}>
                                 {printer.candidate_uri}
@@ -662,7 +673,7 @@ export function PrinterManagementPage({
                             disabled={addingPrinter || Boolean(printer.managed_printer_id)}
                             onClick={() => void addDiscoveredPrinter(printer)}
                           >
-                            {printer.managed_printer_id ? "已添加" : "添加"}
+                            {printer.managed_printer_id ? t("printers.added") : t("printers.add")}
                           </Button>
                         </div>
                       ))}
@@ -671,12 +682,12 @@ export function PrinterManagementPage({
                     <div className="px-4 py-10 text-center text-sm text-muted-foreground">
                       <PrinterIcon className="mx-auto mb-3 size-9 text-muted-foreground/50" />
                       <div className="font-medium text-foreground">
-                        {discoveringCupsPrinters ? "正在读取打印机列表..." : "当前没有可添加的 CUPS 打印机"}
+                        {discoveringCupsPrinters ? t("printers.loadingDiscovery") : t("printers.emptyDiscovery")}
                       </div>
                       <p className="mx-auto mt-2 max-w-md leading-6">
                         {discoveringCupsPrinters
-                          ? "正在向后端查询当前 CUPS 已声明的打印机。"
-                          : discoveryMessage || "请确认 CUPS 中已有打印机，且该打印机允许共享或能被后端读取。"}
+                          ? t("printers.loadingDiscoveryDescription")
+                          : discoveryMessage || t("printers.emptyDiscoveryDescription")}
                       </p>
                     </div>
                   )}
@@ -687,24 +698,24 @@ export function PrinterManagementPage({
                 <form className="space-y-5" onSubmit={onManualAddPrinter}>
                   <div className="rounded-xl border border-sky-200 bg-sky-50/70 px-4 py-3 text-sm leading-6 text-sky-900">
                     <AlertCircleIcon className="mr-2 inline size-4 align-[-2px] text-sky-700" />
-                    如果你知道打印机的确切 URI，可以在这里手动添加。后端会先校验连接与能力，再纳入设备列表。
+                    {t("printers.manualHint")}
                   </div>
                   {addPrinterError ? <InlineError message={addPrinterError} /> : null}
                   <div className="grid gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="manual-printer-uri">打印机 URI</Label>
+                      <Label htmlFor="manual-printer-uri">{t("printers.manualUriLabel")}</Label>
                       <Input
                         id="manual-printer-uri"
-                        placeholder="例如：ipps://printer.local/ipp/print 或 socket://192.168.1.50:9100"
+                        placeholder={t("printers.manualUriPlaceholder")}
                         value={manualPrinterUri}
                         onChange={(event) => setManualPrinterUri(event.target.value)}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="manual-printer-name">显示名称（可选）</Label>
+                      <Label htmlFor="manual-printer-name">{t("printers.manualNameLabel")}</Label>
                       <Input
                         id="manual-printer-name"
-                        placeholder="留空则自动使用设备名称"
+                        placeholder={t("printers.manualNamePlaceholder")}
                         value={manualPrinterName}
                         onChange={(event) => setManualPrinterName(event.target.value)}
                       />
@@ -712,11 +723,11 @@ export function PrinterManagementPage({
                   </div>
                   <div className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end">
                     <Button type="button" variant="outline" onClick={() => setAddPrinterModalOpen(false)}>
-                      取消
+                      {t("common.cancel")}
                     </Button>
                     <Button type="submit" disabled={!manualPrinterUri.trim() || addingPrinter}>
                       <PlusIcon data-icon="inline-start" />
-                      {addingPrinter ? "校验中..." : "校验并添加"}
+                      {addingPrinter ? t("printers.testing") : t("printers.addPrinter")}
                     </Button>
                   </div>
                 </form>
@@ -725,7 +736,7 @@ export function PrinterManagementPage({
           </Tabs>
           <SheetFooter>
             <Button type="button" variant="outline" onClick={() => setAddPrinterModalOpen(false)}>
-              关闭
+              {t("printers.close")}
             </Button>
           </SheetFooter>
         </SheetContent>
@@ -734,8 +745,8 @@ export function PrinterManagementPage({
       <Sheet open={settingsOpen} onOpenChange={setSettingsOpen}>
         <SheetContent className="w-full max-w-none overflow-hidden data-[side=right]:w-full data-[side=right]:sm:max-w-lg">
           <SheetHeader>
-            <SheetTitle>服务设置</SheetTitle>
-            <SheetDescription>配置 DeepPrint 后端当前连接的 CUPS 服务地址。</SheetDescription>
+            <SheetTitle>{t("printers.serviceSettings")}</SheetTitle>
+            <SheetDescription>{t("printers.serviceSettingsDescription")}</SheetDescription>
           </SheetHeader>
           <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-4">
             <div className="rounded-xl border bg-muted/20 p-4">
@@ -744,16 +755,16 @@ export function PrinterManagementPage({
                   <HardDriveIcon className="size-4" />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-sm font-medium">当前 CUPS 地址</div>
+                  <div className="text-sm font-medium">{t("printers.cupsAddress")}</div>
                   <div className="ui-selectable mt-1 truncate font-mono text-xs text-muted-foreground" title={cupsBaseUrlDraft || undefined}>
-                    {cupsSettingsLoading ? "读取中..." : cupsBaseUrlDraft || "未配置"}
+                    {cupsSettingsLoading ? t("printers.status.loading") : cupsBaseUrlDraft || t("printers.notConfigured")}
                   </div>
                 </div>
               </div>
               <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                <SummaryPill label="打印后端" value={agent.health?.backend_name ?? "unknown"} />
-                <SummaryPill label="渲染引擎" value={agent.health?.render_engine ?? "unknown"} />
-                <SummaryPill label="缓存" value={`${agent.health?.render_cache_entries ?? 0} 条`} />
+                <SummaryPill label={t("printers.backend")} value={agent.health?.backend_name ?? "unknown"} />
+                <SummaryPill label={t("printers.renderEngine")} value={agent.health?.render_engine ?? "unknown"} />
+                <SummaryPill label={t("printers.cache")} value={t("printers.cacheEntries", { count: agent.health?.render_cache_entries ?? 0 })} />
               </div>
             </div>
 
@@ -766,11 +777,11 @@ export function PrinterManagementPage({
                 onChange={(event) => setCupsBaseUrlDraft(event.target.value)}
               />
               <p className="text-xs leading-5 text-muted-foreground">
-                这里填写的是 DeepPrint 服务端可访问的地址。宿主机部署通常可以用
+                {t("printers.cupsHelpBefore")}
                 <code className="mx-1 rounded bg-muted px-1 py-0.5">http://127.0.0.1:631/</code>
-                ，Docker Compose 常见为
+                {t("printers.cupsHelpMiddle")}
                 <code className="mx-1 rounded bg-muted px-1 py-0.5">http://cups:631/</code>
-                。
+                {t("printers.cupsHelpAfter")}
               </p>
             </div>
 
@@ -782,14 +793,14 @@ export function PrinterManagementPage({
                 onClick={() => void testConfiguredCupsConnection()}
               >
                 <WifiIcon data-icon="inline-start" />
-                {testingCupsConnection ? "测试中..." : "测试连接"}
+                {testingCupsConnection ? t("printers.testing") : t("printers.testConnection")}
               </Button>
               <Button
                 type="button"
                 disabled={savingCupsSettings || cupsSettingsLoading || !cupsBaseUrlDraft.trim()}
                 onClick={() => void saveCupsBaseUrl()}
               >
-                {savingCupsSettings ? "保存中..." : "保存设置"}
+                {savingCupsSettings ? t("printers.saving") : t("printers.saveSettings")}
               </Button>
             </div>
 
@@ -808,7 +819,7 @@ export function PrinterManagementPage({
           </div>
           <SheetFooter>
             <Button type="button" variant="outline" onClick={() => setSettingsOpen(false)}>
-              关闭
+              {t("printers.close")}
             </Button>
           </SheetFooter>
         </SheetContent>
@@ -818,9 +829,9 @@ export function PrinterManagementPage({
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm">
           <Card className="w-full max-w-md border shadow-2xl">
             <CardHeader>
-              <CardTitle>删除打印机</CardTitle>
+              <CardTitle>{t("printers.deleteTitle")}</CardTitle>
               <CardDescription>
-                确认删除“{pendingDelete.name}”？如果还有进行中的打印任务，后端会阻止删除。
+                {t("printers.confirmDelete", { name: pendingDelete.name })}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -831,7 +842,7 @@ export function PrinterManagementPage({
                   disabled={Boolean(deletingPrinterId)}
                   onClick={() => setPendingDelete(null)}
                 >
-                  取消
+                  {t("common.cancel")}
                 </Button>
                 <Button
                   type="button"
@@ -839,7 +850,7 @@ export function PrinterManagementPage({
                   disabled={Boolean(deletingPrinterId)}
                   onClick={() => void confirmDeletePrinter()}
                 >
-                  删除
+                  {t("common.delete")}
                 </Button>
               </div>
             </CardContent>
@@ -863,6 +874,7 @@ function SectionHeader({
   onOpenSettings: () => void;
   title: string;
 }) {
+  const { t } = useI18n();
   return (
     <div className="relative overflow-hidden rounded-2xl border bg-card p-4 shadow-sm sm:p-6">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_20%,rgba(14,165,233,0.16),transparent_34%),radial-gradient(circle_at_88%_8%,rgba(16,185,129,0.14),transparent_32%),linear-gradient(135deg,rgba(14,165,233,0.08),transparent_48%,rgba(16,185,129,0.08))]" />
@@ -885,11 +897,11 @@ function SectionHeader({
         <div className="grid gap-2 sm:grid-cols-2 lg:flex lg:shrink-0">
           <Button type="button" variant="outline" className="w-full lg:w-auto" onClick={onOpenSettings}>
             <SettingsIcon data-icon="inline-start" />
-            设置
+            {t("printers.settings")}
           </Button>
           <Button type="button" className="w-full lg:w-auto" onClick={onAddPrinter}>
             <PlusIcon data-icon="inline-start" />
-            添加打印机
+            {t("printers.addPrinter")}
           </Button>
         </div>
       </div>
@@ -910,6 +922,7 @@ function ServiceMetricCard({
   tone?: "default" | "success" | "warning" | "danger" | "neutral";
   value: ReactNode;
 }) {
+  const { t } = useI18n();
   return (
     <div
       className={cn(
@@ -969,17 +982,18 @@ function PrinterTable({
   selectedPrinterId: string;
   togglingPrinterId: string | null;
 }) {
+  const { t } = useI18n();
   if (!printers.length) {
     return (
       <div className="rounded-xl border border-dashed bg-muted/20 px-4 py-12 text-center">
         <PrinterIcon className="mx-auto mb-4 size-10 text-muted-foreground/60" />
-        <div className="font-medium">{loading ? "正在加载打印机..." : "暂无托管打印机"}</div>
+        <div className="font-medium">{loading ? t("printers.loading") : t("printers.empty")}</div>
         <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-          可以从当前 CUPS 发现设备，也可以手动输入已知的打印机 URI。
+          {t("printers.emptyDescription")}
         </p>
         <Button type="button" className="mt-4" onClick={onAddPrinter}>
           <PlusIcon data-icon="inline-start" />
-          添加打印机
+          {t("printers.addPrinter")}
         </Button>
       </div>
     );
@@ -1004,11 +1018,11 @@ function PrinterTable({
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/30">
-              <TableHead>打印机</TableHead>
-              <TableHead>状态</TableHead>
-              <TableHead>核心能力</TableHead>
-              <TableHead>最近验证</TableHead>
-              <TableHead className="text-right">操作</TableHead>
+              <TableHead>{t("printers.tablePrinter")}</TableHead>
+              <TableHead>{t("printers.tableStatus")}</TableHead>
+              <TableHead>{t("printers.tableCapabilities")}</TableHead>
+              <TableHead>{t("printers.tableValidated")}</TableHead>
+              <TableHead className="text-right">{t("printers.tableActions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -1074,7 +1088,7 @@ function PrinterIdentity({
           printer.is_default ? "bg-primary/10 text-primary" : "bg-muted/40 text-muted-foreground",
         )}
         onClick={() => onChoosePrinter(printer.id)}
-        title="选为打印目标"
+        title={t("printers.chooseTarget")}
       >
         <PrinterIcon className="size-5" />
       </button>
@@ -1087,9 +1101,9 @@ function PrinterIdentity({
           {printer.name}
         </button>
         <div className="mt-1 flex flex-wrap gap-1.5">
-          {selected ? <Badge variant="secondary">打印目标</Badge> : null}
-          {printer.is_default ? <Badge variant="outline">默认设备</Badge> : null}
-          {!printer.enabled ? <Badge variant="outline">已停用</Badge> : null}
+          {selected ? <Badge variant="secondary">{t("printers.selectedTarget")}</Badge> : null}
+          {printer.is_default ? <Badge variant="outline">{t("printers.defaultDevice")}</Badge> : null}
+          {!printer.enabled ? <Badge variant="outline">{t("printer.state.disabled")}</Badge> : null}
           <Badge variant="outline">{printerSourceLabel(printer.source)}</Badge>
         </div>
         <div className="ui-selectable mt-1 max-w-full truncate font-mono text-xs text-muted-foreground" title={printer.uri}>
@@ -1105,7 +1119,7 @@ function PrinterStatus({ printer }: { printer: PrinterInfo }) {
     <div className="flex flex-col items-start gap-1">
       <Badge variant={printer.enabled ? statusBadgeVariant(printer.state) : "outline"}>
         <StatusDot status={printer.enabled ? printer.state : "disabled"} />
-        {printerStateLabel(printer)}
+        {localizedPrinterStateLabel(printer)}
       </Badge>
       {printer.state_message ? (
         <div className="max-w-56 truncate text-xs text-muted-foreground" title={printer.state_message}>
@@ -1133,6 +1147,7 @@ function PrinterMobileCard({
   detail: PrinterDetail | undefined;
   printer: PrinterInfo;
 }) {
+  const { t } = useI18n();
   const selected = printer.id === selectedPrinterId;
   return (
     <div className={cn("rounded-xl border bg-card p-4 shadow-sm", !printer.enabled ? "opacity-70" : "")}>
@@ -1154,16 +1169,16 @@ function PrinterMobileCard({
       </div>
       <div className="mt-4 grid gap-3">
         <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/20 px-3 py-2">
-          <span className="text-xs text-muted-foreground">状态</span>
+          <span className="text-xs text-muted-foreground">{t("printers.tableStatus")}</span>
           <PrinterStatus printer={printer} />
         </div>
         <div className="rounded-lg border bg-muted/20 px-3 py-2">
-          <div className="mb-2 text-xs text-muted-foreground">核心能力</div>
+          <div className="mb-2 text-xs text-muted-foreground">{t("printers.tableCapabilities")}</div>
           <CapabilityChips detail={detail} />
         </div>
         <div className="grid grid-cols-2 gap-2 text-xs">
-          <SummaryPill label="最近验证" value={formatUnixSec(printer.last_validated_at)} />
-          <SummaryPill label="最近发现" value={formatUnixSec(printer.last_seen_at)} />
+          <SummaryPill label={t("printers.validatedAt")} value={formatUnixSec(printer.last_validated_at)} />
+          <SummaryPill label={t("printers.seenAt")} value={formatUnixSec(printer.last_seen_at)} />
         </div>
         <div className="grid grid-cols-2 gap-2">
           <Button
@@ -1173,7 +1188,7 @@ function PrinterMobileCard({
             disabled={selected}
             onClick={() => onChoosePrinter(printer.id)}
           >
-            {selected ? "打印目标" : "选为打印目标"}
+            {selected ? t("printers.selectedTarget") : t("printers.chooseTarget")}
           </Button>
           <Button
             type="button"
@@ -1182,7 +1197,7 @@ function PrinterMobileCard({
             disabled={refreshingPrinterId === printer.id}
             onClick={() => onRefreshPrinter(printer.id)}
           >
-            刷新状态
+            {t("printers.refreshStatus")}
           </Button>
         </div>
       </div>
@@ -1216,6 +1231,7 @@ function PrinterActionsMenu({
   selectedPrinterId,
   togglingPrinterId,
 }: PrinterActionProps & { printer: PrinterInfo }) {
+  const { t } = useI18n();
   const selected = printer.id === selectedPrinterId;
   return (
     <DropdownMenu>
@@ -1230,15 +1246,15 @@ function PrinterActionsMenu({
         }
       >
         <MoreHorizontalIcon />
-        <span className="sr-only">打开打印机操作菜单</span>
+        <span className="sr-only">{t("printers.deviceActions")}</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-40">
         <DropdownMenuGroup>
-          <DropdownMenuLabel>设备操作</DropdownMenuLabel>
+          <DropdownMenuLabel>{t("printers.deviceActions")}</DropdownMenuLabel>
           {!selected ? (
             <DropdownMenuItem onClick={() => onChoosePrinter(printer.id)}>
               <CheckCircle2Icon />
-              选为打印目标
+              {t("printers.chooseTarget")}
             </DropdownMenuItem>
           ) : null}
           {!printer.is_default ? (
@@ -1247,19 +1263,23 @@ function PrinterActionsMenu({
               onClick={() => onSetDefaultPrinter(printer)}
             >
               <PrinterIcon />
-              设为默认设备
+              {t("printers.setDefault")}
             </DropdownMenuItem>
           ) : null}
           <DropdownMenuItem disabled={refreshingPrinterId === printer.id} onClick={() => onRefreshPrinter(printer.id)}>
             <RefreshCwIcon />
-            刷新状态
+            {t("printers.refreshStatus")}
           </DropdownMenuItem>
           <DropdownMenuItem
             disabled={togglingPrinterId === printer.id || (printer.enabled && printer.is_default)}
             onClick={() => onTogglePrinter(printer)}
           >
             {printer.enabled ? <AlertCircleIcon /> : <CheckCircle2Icon />}
-            {printer.enabled && printer.is_default ? "默认设备不能停用" : printer.enabled ? "停用设备" : "启用设备"}
+            {printer.enabled && printer.is_default
+              ? t("printers.defaultDisableBlocked")
+              : printer.enabled
+                ? t("printers.disableDevice")
+                : t("printers.enableDevice")}
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
@@ -1269,7 +1289,7 @@ function PrinterActionsMenu({
           onClick={() => onDeletePrinter(printer)}
         >
           <Trash2Icon />
-          移除设备
+          {t("common.delete")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -1277,13 +1297,14 @@ function PrinterActionsMenu({
 }
 
 function CapabilityChips({ detail }: { detail: PrinterDetail | undefined }) {
+  const { t } = useI18n();
   if (!detail) {
-    return <span className="text-xs text-muted-foreground">能力加载中</span>;
+    return <span className="text-xs text-muted-foreground">{t("printers.capability.loading")}</span>;
   }
 
   const chips = buildCapabilityChips(detail);
   if (!chips.length) {
-    return <span className="text-xs text-muted-foreground">CUPS 未声明核心能力</span>;
+    return <span className="text-xs text-muted-foreground">{t("printers.capability.noCups")}</span>;
   }
 
   const visibleChips = chips.slice(0, 2);
@@ -1304,7 +1325,7 @@ function CapabilityChips({ detail }: { detail: PrinterDetail | undefined }) {
             +{hiddenChips.length}
           </TooltipTrigger>
           <TooltipContent side="top" align="center" className="block max-w-64 px-3 py-2">
-            <div className="mb-1 border-b border-background/20 pb-1 font-medium text-background/80">其他能力</div>
+            <div className="mb-1 border-b border-background/20 pb-1 font-medium text-background/80">{t("printers.capability.other")}</div>
             <div className="space-y-1">
               {hiddenChips.map((chip) => (
                 <div key={chip.key} className="flex items-center gap-1.5 whitespace-nowrap">
@@ -1413,8 +1434,8 @@ function StatusDot({ status }: { status: string | null | undefined }) {
 }
 
 function serverStatusLabel(health: { status: string } | null | undefined) {
-  if (!health) return "加载中";
-  return health.status === "ok" ? "运行中" : health.status || "未知";
+  if (!health) return tr("printers.status.loading");
+  return health.status === "ok" ? tr("printers.status.ok") : health.status || tr("common.unknown");
 }
 
 function serverSummaryText(
@@ -1423,26 +1444,26 @@ function serverSummaryText(
     "status" | "needs_attention_jobs" | "rendering_jobs" | "submitting_jobs" | "printing_jobs"
   > | null | undefined,
 ) {
-  if (!health) return "正在读取 Print Server 状态。";
+  if (!health) return tr("printers.summaryLoading");
   if ((health.needs_attention_jobs ?? 0) > 0) {
-    return `当前有 ${health.needs_attention_jobs} 个任务状态待确认，建议进入打印历史查看。`;
+    return tr("printers.summaryAttention", { count: health.needs_attention_jobs });
   }
   if (health.status !== "ok") {
-    return "Print Server 状态异常，建议检查任务队列、后端与缓存信息。";
+    return tr("printers.summaryUnhealthy");
   }
   if (health.rendering_jobs > 0 || (health.submitting_jobs ?? 0) > 0 || health.printing_jobs > 0) {
-    return "Print Server 运行中，当前正在处理打印任务。";
+    return tr("printers.summaryBusy");
   }
-  return "Print Server 运行中，负责打印渲染、提交与任务状态追踪。";
+  return tr("printers.summaryHealthy");
 }
 
 function formatDuration(seconds: number | null | undefined) {
-  if (!seconds || !Number.isFinite(seconds) || seconds <= 0) return "刚启动";
+  if (!seconds || !Number.isFinite(seconds) || seconds <= 0) return tr("printers.uptimeFresh");
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
-  if (hours > 0) return `${hours} 小时 ${minutes} 分钟`;
-  if (minutes > 0) return `${minutes} 分钟`;
-  return `${Math.max(1, Math.floor(seconds))} 秒`;
+  if (hours > 0) return tr("printers.uptimeHours", { hours, minutes });
+  if (minutes > 0) return tr("printers.uptimeMinutes", { minutes });
+  return tr("printers.uptimeSeconds", { seconds: Math.max(1, Math.floor(seconds)) });
 }
 
 function buildCapabilityChips(printer: PrinterDetail) {
@@ -1460,7 +1481,11 @@ function buildCapabilityChips(printer: PrinterDetail) {
     chips.push({
       icon: "color",
       key: "color",
-      label: supportsColor && supportsMonochrome ? "彩色/黑白" : supportsColor ? "彩色" : "黑白",
+      label: supportsColor && supportsMonochrome
+        ? tr("printers.capability.colorAndMono")
+        : supportsColor
+          ? tr("printers.capability.color")
+          : tr("printers.capability.mono"),
       tone: supportsColor ? "primary" : "muted",
     });
   }
@@ -1471,7 +1496,7 @@ function buildCapabilityChips(printer: PrinterDetail) {
     chips.push({
       icon: "duplex",
       key: "duplex",
-      label: supportsDuplex ? "双面" : "单面",
+      label: supportsDuplex ? tr("printers.capability.duplex") : tr("printers.capability.simplex"),
       tone: supportsDuplex ? "success" : "muted",
     });
   }
@@ -1483,7 +1508,9 @@ function buildCapabilityChips(printer: PrinterDetail) {
     chips.push({
       icon: "media",
       key: "media",
-      label: media.length > 1 ? `${formatMediaLabel(media[0])} 等 ${media.length} 种` : formatMediaLabel(media[0]),
+      label: media.length > 1
+        ? tr("printers.capability.mediaMany", { label: formatMediaLabel(media[0]), count: media.length })
+        : formatMediaLabel(media[0]),
       tone: "muted",
     });
   }
@@ -1493,7 +1520,7 @@ function buildCapabilityChips(printer: PrinterDetail) {
     chips.push({
       icon: "copies",
       key: "copies",
-      label: `多份打印 · 最多 ${copiesMax}`,
+      label: tr("printers.capability.copiesMax", { count: copiesMax }),
       tone: "muted",
     });
   }
@@ -1502,7 +1529,7 @@ function buildCapabilityChips(printer: PrinterDetail) {
     chips.push({
       icon: "page-ranges",
       key: "page-ranges",
-      label: "页码范围",
+      label: tr("printers.capability.pageRange"),
       tone: "muted",
     });
   }
@@ -1512,7 +1539,7 @@ function buildCapabilityChips(printer: PrinterDetail) {
     chips.push({
       icon: "orientation",
       key: "orientation",
-      label: "方向可选",
+      label: tr("printers.capability.orientation"),
       tone: "muted",
     });
   }
@@ -1522,7 +1549,7 @@ function buildCapabilityChips(printer: PrinterDetail) {
     chips.push({
       icon: "scaling",
       key: "scaling",
-      label: "缩放可选",
+      label: tr("printers.capability.scaling"),
       tone: "muted",
     });
   }
@@ -1543,26 +1570,6 @@ const baseMediaLabels: Record<string, string> = {
   iso_c5_162x229mm: "C5 Envelope",
 };
 
-const keywordLabels: Record<string, string> = {
-  all: "全部",
-  auto: "自动",
-  "auto-fit": "自动适应",
-  color: "彩色",
-  even: "偶数",
-  fill: "填充纸张",
-  fit: "适应纸张",
-  landscape: "横向",
-  monochrome: "黑白",
-  none: "无缩放",
-  odd: "奇数",
-  "one-sided": "单面",
-  portrait: "纵向",
-  stationery: "普通纸",
-  "thick-paper": "厚纸",
-  "two-sided-long-edge": "双面长边翻页",
-  "two-sided-short-edge": "双面短边翻页",
-};
-
 function formatMediaLabel(value: string) {
   if (baseMediaLabels[value]) return baseMediaLabels[value];
   const dimension = parseMediaDimensionsMm(value);
@@ -1576,7 +1583,9 @@ function formatMediaLabel(value: string) {
 }
 
 function formatKeywordLabel(value: string) {
-  return keywordLabels[value] ?? value.replace(/[-_]/g, " ");
+  const key = `keyword.${value}`;
+  const label = tr(key);
+  return label === key ? value.replace(/[-_]/g, " ") : label;
 }
 
 function formatDimension(value: number) {
@@ -1606,14 +1615,27 @@ function parseMediaDimensionsMm(value: string): { width: number; height: number 
 function printerSourceLabel(source: PrinterSource) {
   switch (source) {
     case "manual":
-      return "手动添加";
+      return tr("printers.source.manual");
     case "cups_import":
-      return "CUPS 导入";
+      return tr("printers.source.cupsImport");
     case "mdns":
-      return "网络发现";
+      return tr("printers.source.mdns");
   }
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
-  return error instanceof Error && error.message.trim() ? error.message : fallback;
+  return getRequestErrorMessage(error, fallback);
+}
+
+function localizedPrinterStateLabel(printer: PrinterInfo) {
+  if (!printer.enabled) return tr("printer.state.disabled");
+  const normalized = (printer.state ?? "").toLowerCase();
+  if (normalized.includes("idle")) return tr("printer.state.idle");
+  if (normalized.includes("process") || normalized.includes("busy")) return tr("printer.state.processing");
+  if (normalized.includes("stop")) return tr("printer.state.stopped");
+  return printer.state?.trim() || tr("common.unknown");
+}
+
+function tr(key: MessageKey | string, params?: Record<string, string | number | null | undefined>) {
+  return translate(getCurrentLocale(), key, params);
 }

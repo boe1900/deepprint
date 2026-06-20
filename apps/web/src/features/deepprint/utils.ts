@@ -6,6 +6,7 @@ import {
   MAX_JOB_POLL_INTERVAL_SEC,
   MIN_JOB_POLL_INTERVAL_SEC,
 } from "./constants";
+import { getCurrentLocale, translate } from "@/i18n";
 import type {
   DiagnosticHistoryItem,
   JobErrorCategory,
@@ -50,18 +51,18 @@ export async function readFileAsBase64(file: File): Promise<string> {
     reader.onload = () => {
       const result = reader.result;
       if (typeof result !== "string") {
-        reject(new Error("读取文件失败：无法解析 DataURL"));
+        reject(new Error(translate(getCurrentLocale(), "files.readDataUrlInvalid")));
         return;
       }
       const marker = "base64,";
       const index = result.indexOf(marker);
       if (index < 0) {
-        reject(new Error("读取文件失败：DataURL 缺少 base64 数据"));
+        reject(new Error(translate(getCurrentLocale(), "files.readMissingBase64")));
         return;
       }
       resolve(result.slice(index + marker.length));
     };
-    reader.onerror = () => reject(new Error("读取文件失败"));
+    reader.onerror = () => reject(new Error(translate(getCurrentLocale(), "files.readFailed")));
     reader.readAsDataURL(file);
   });
 }
@@ -139,12 +140,12 @@ function readFileAsDataUrl(file: File): Promise<string> {
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result !== "string") {
-        reject(new Error("读取图片失败"));
+        reject(new Error(translate(getCurrentLocale(), "files.imageReadFailed")));
         return;
       }
       resolve(reader.result);
     };
-    reader.onerror = () => reject(new Error("读取图片失败"));
+    reader.onerror = () => reject(new Error(translate(getCurrentLocale(), "files.imageReadFailed")));
     reader.readAsDataURL(file);
   });
 }
@@ -153,7 +154,7 @@ function loadImageFromUrl(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
     image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("图片解析失败"));
+    image.onerror = () => reject(new Error(translate(getCurrentLocale(), "files.imageParseFailed")));
     image.src = url;
   });
 }
@@ -168,7 +169,7 @@ async function convertImageToJpegBytes(
   canvas.height = height;
   const context = canvas.getContext("2d");
   if (!context) {
-    throw new Error("浏览器不支持 Canvas 绘制");
+    throw new Error(translate(getCurrentLocale(), "files.canvasUnsupported"));
   }
 
   const image = await loadImageFromUrl(url);
@@ -180,7 +181,7 @@ async function convertImageToJpegBytes(
     canvas.toBlob(
       (nextBlob) => {
         if (!nextBlob) {
-          reject(new Error("图片转 PDF 失败：无法导出 JPEG"));
+          reject(new Error(translate(getCurrentLocale(), "files.imageJpegExportFailed")));
           return;
         }
         resolve(nextBlob);
@@ -296,28 +297,9 @@ export function isTerminalStatus(status: string): boolean {
 }
 
 export function statusLabel(status: string): string {
-  switch (status) {
-    case "needs_attention":
-      return "待确认";
-    case "queued":
-      return "排队";
-    case "rendering":
-      return "渲染中";
-    case "submitting":
-      return "提交中";
-    case "printing":
-      return "打印中";
-    case "succeeded":
-      return "成功";
-    case "failed":
-      return "失败";
-    case "canceled":
-      return "已取消";
-    case "dead_letter":
-      return "死信";
-    default:
-      return status;
-  }
+  const key = `status.${status}`;
+  const label = translate(getCurrentLocale(), key);
+  return label === key ? status : label;
 }
 
 export function categorizeJobError(
@@ -331,9 +313,9 @@ export function categorizeJobError(
 
   if (normalizedCode.startsWith("RENDER_") || normalizedMessage.includes("TYPST")) {
     return {
-      label: "渲染错误",
+      label: translate(getCurrentLocale(), "jobError.render.label"),
       level: "warn",
-      hint: "检查模板语法、模板资源路径与数据字段映射。",
+      hint: translate(getCurrentLocale(), "jobError.render.hint"),
     };
   }
 
@@ -343,9 +325,9 @@ export function categorizeJobError(
     normalizedMessage.includes("TIMED OUT")
   ) {
     return {
-      label: "超时错误",
+      label: translate(getCurrentLocale(), "jobError.timeout.label"),
       level: "warn",
-      hint: "检查后端响应时延，必要时提升超时配置。",
+      hint: translate(getCurrentLocale(), "jobError.timeout.hint"),
     };
   }
 
@@ -356,40 +338,40 @@ export function categorizeJobError(
     normalizedMessage.includes("WINSPOOL")
   ) {
     return {
-      label: "打印后端错误",
+      label: translate(getCurrentLocale(), "jobError.backend.label"),
       level: "critical",
-      hint: "检查打印机在线状态、驱动、队列权限与纸张配置。",
+      hint: translate(getCurrentLocale(), "jobError.backend.hint"),
     };
   }
 
   if (normalizedCode.startsWith("AUTH_") || normalizedMessage.includes("UNAUTHORIZED")) {
     return {
-      label: "鉴权错误",
+      label: translate(getCurrentLocale(), "jobError.auth.label"),
       level: "warn",
-      hint: "核对 token / secret / 时间戳窗口和签名算法。",
+      hint: translate(getCurrentLocale(), "jobError.auth.hint"),
     };
   }
 
   if (normalizedCode.startsWith("DB_") || normalizedCode.startsWith("INTERNAL_")) {
     return {
-      label: "系统错误",
+      label: translate(getCurrentLocale(), "jobError.system.label"),
       level: "critical",
-      hint: "建议先导出诊断包，再排查数据库与日志。",
+      hint: translate(getCurrentLocale(), "jobError.system.hint"),
     };
   }
 
   if (normalizedCode.includes("CANCEL")) {
     return {
-      label: "任务取消",
+      label: translate(getCurrentLocale(), "jobError.canceled.label"),
       level: "info",
-      hint: "任务已被主动取消，如非预期请检查调用方行为。",
+      hint: translate(getCurrentLocale(), "jobError.canceled.hint"),
     };
   }
 
   return {
-    label: "未知错误",
+    label: translate(getCurrentLocale(), "jobError.unknown.label"),
     level: "warn",
-    hint: "建议查看错误码与诊断包详情定位根因。",
+    hint: translate(getCurrentLocale(), "jobError.unknown.hint"),
   };
 }
 

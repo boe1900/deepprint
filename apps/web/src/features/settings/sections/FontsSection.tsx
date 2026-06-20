@@ -21,8 +21,10 @@ import type { DeepprintController } from "@/features/deepprint/controller";
 import type { TypstFontInfo } from "@/features/deepprint/types";
 import { formatBytes } from "@/features/deepprint/utils";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n";
 
 export function FontsSection({ controller }: { controller: DeepprintController }) {
+  const { t } = useI18n();
   const { actions, typstFonts } = controller;
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [query, setQuery] = useState("");
@@ -54,10 +56,10 @@ export function FontsSection({ controller }: { controller: DeepprintController }
           <div className="space-y-1">
             <CardTitle className="flex items-center gap-2">
               <TypeIcon className="size-4 text-amber-600" />
-              Typst 字体管理
+              {t("settings.fonts.label")}
             </CardTitle>
             <CardDescription>
-              统一管理当前实例中 Typst 可直接使用的字体。默认字体会在初始化时写入统一字体目录，后续上传字体也在这里一起管理。
+              {t("settings.fonts.summary")}
             </CardDescription>
           </div>
           <CardAction className="flex w-full flex-wrap gap-2 sm:w-auto">
@@ -72,7 +74,7 @@ export function FontsSection({ controller }: { controller: DeepprintController }
                 data-icon="inline-start"
                 className={cn(typstFonts.loading ? "animate-spin" : "")}
               />
-              刷新
+              {t("common.refresh")}
             </Button>
             <Button
               type="button"
@@ -81,7 +83,7 @@ export function FontsSection({ controller }: { controller: DeepprintController }
               onClick={() => fileInputRef.current?.click()}
             >
               <UploadIcon data-icon="inline-start" />
-              {typstFonts.installing ? "上传中..." : "上传字体"}
+              {typstFonts.installing ? t("settings.fonts.uploading") : t("settings.fonts.upload")}
             </Button>
           </CardAction>
         </CardHeader>
@@ -101,9 +103,9 @@ export function FontsSection({ controller }: { controller: DeepprintController }
 
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="space-y-1">
-              <div className="text-sm font-medium text-foreground">统一字体列表</div>
+              <div className="text-sm font-medium text-foreground">{t("settings.fonts.listTitle")}</div>
               <div className="text-xs leading-5 text-muted-foreground">
-                当前环境中可供 Typst 直接使用的字体都会在这里展示与管理。
+                {t("settings.fonts.listDescription")}
               </div>
             </div>
 
@@ -112,19 +114,19 @@ export function FontsSection({ controller }: { controller: DeepprintController }
               <Input
                 value={query}
                 onChange={(event) => setQuery(event.currentTarget.value)}
-                placeholder="检索字体"
+                placeholder={t("settings.fonts.searchPlaceholder")}
                 className="pl-8"
               />
             </div>
           </div>
 
           <FontListPanel
-            description="支持按文件名或扩展名检索，删除后会立即从统一字体目录中移除。"
-            emptyTitle={normalizedQuery ? "没有匹配的字体" : "还没有字体"}
+            description={t("settings.fonts.deleteHint")}
+            emptyTitle={normalizedQuery ? t("settings.fonts.emptyFilteredTitle") : t("settings.fonts.emptyTitle")}
             emptyDescription={
               normalizedQuery
-                ? "可以试试搜索文件名、字体名或扩展名。"
-                : "支持上传 `.ttf`、`.otf`、`.ttc`、`.otc` 字体文件，上传后即可在模板中引用。"
+                ? t("settings.fonts.emptyFilteredDescription")
+                : t("settings.fonts.emptyDescription")
             }
             fonts={filteredFonts}
             query={normalizedQuery}
@@ -147,6 +149,8 @@ function InputFile({
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   onSelect: (file: File | undefined) => void;
 }) {
+  const { t } = useI18n();
+
   return (
     <input
       ref={fileInputRef}
@@ -178,15 +182,19 @@ function FontListPanel({
   query: string;
   totalCount: number;
 }) {
+  const { t } = useI18n();
+
   return (
     <div className="overflow-hidden rounded-2xl border bg-card/80">
       <div className="flex flex-col gap-2 border-b bg-muted/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <p className="text-xs leading-5 text-muted-foreground">{description}</p>
         <div className="flex items-center gap-2">
           <Badge variant="outline">
-            {query ? `已显示 ${fonts.length} / ${totalCount}` : `共 ${totalCount} 条`}
+            {query
+              ? t("settings.listShown", { shown: fonts.length, total: totalCount })
+              : t("settings.fonts.total", { count: totalCount })}
           </Badge>
-          {query ? <Badge variant="secondary">已筛选</Badge> : null}
+          {query ? <Badge variant="secondary">{t("settings.listFiltered")}</Badge> : null}
         </div>
       </div>
 
@@ -197,14 +205,14 @@ function FontListPanel({
           <div className="mt-1 max-w-sm text-xs leading-5 text-muted-foreground">
             {emptyDescription}
           </div>
-          {query ? <div className="mt-3 text-[11px] text-muted-foreground">当前已应用检索条件</div> : null}
+          {query ? <div className="mt-3 text-[11px] text-muted-foreground">{t("settings.fonts.searchApplied")}</div> : null}
         </div>
       ) : (
         <div className="divide-y">
           <div className="hidden grid-cols-[minmax(0,1.6fr)_auto_auto] items-center gap-4 bg-muted/20 px-5 py-2 text-[11px] font-medium tracking-wide text-muted-foreground uppercase md:grid">
-            <div>字体</div>
-            <div>大小</div>
-            <div className="text-right">操作</div>
+            <div>{t("settings.fonts.tableFont")}</div>
+            <div>{t("settings.fonts.tableSize")}</div>
+            <div className="text-right">{t("settings.fonts.tableAction")}</div>
           </div>
           {fonts.map((font) => (
             <FontListRow
@@ -229,6 +237,8 @@ function FontListRow({
   font: TypstFontInfo;
   onDelete: () => void;
 }) {
+  const { t } = useI18n();
+
   return (
     <div className="px-4 py-4 transition-colors hover:bg-muted/10 sm:px-5">
       <div className="flex flex-col gap-4 md:grid md:grid-cols-[minmax(0,1.6fr)_auto_auto] md:items-center">
@@ -247,7 +257,7 @@ function FontListRow({
               </Badge>
             </div>
             <div className="text-xs text-muted-foreground">
-              文件名：<span className="font-mono">{font.file_name}</span>
+              {t("settings.fonts.fileName")}：<span className="font-mono">{font.file_name}</span>
             </div>
           </div>
         </div>
@@ -265,7 +275,7 @@ function FontListRow({
             onClick={onDelete}
           >
             <Trash2Icon data-icon="inline-start" />
-            {deleting ? "删除中..." : "删除"}
+            {deleting ? t("common.deleting") : t("common.delete")}
           </Button>
         </div>
       </div>

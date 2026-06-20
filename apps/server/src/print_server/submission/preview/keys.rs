@@ -28,10 +28,15 @@ pub(super) fn build_render_cache_key_from_preview_request(
     data: &Value,
     print_options: &PrintOptions,
 ) -> ApiResult<RenderCacheKey> {
-    let data_json = serde_json::to_string(data)
-        .map_err(|err| ApiError::BadRequest(format!("data 必须是有效 JSON: {err}")))?;
-    let print_options_json = serde_json::to_string(print_options)
-        .map_err(|err| ApiError::BadRequest(format!("print_options 必须是有效 JSON: {err}")))?;
+    let data_json = serde_json::to_string(data).map_err(|err| {
+        ApiError::bad_request("DATA_INVALID_JSON", format!("data must be valid JSON: {err}"))
+    })?;
+    let print_options_json = serde_json::to_string(print_options).map_err(|err| {
+        ApiError::bad_request(
+            "PRINT_OPTIONS_INVALID_JSON",
+            format!("print_options must be valid JSON: {err}"),
+        )
+    })?;
 
     Ok(build_render_cache_key_from_json(
         template_content,
